@@ -1,4 +1,4 @@
-import { Check, RefreshCw } from 'lucide-react';
+import { Briefcase, Check, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import type { LessonStepperProps } from './types';
 
@@ -19,9 +19,9 @@ export function LessonStepper({
   onChangeScenario,
 }: ExtendedLessonStepperProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-white dark:bg-[var(--jvx-surface-card)] p-3.5 sm:p-4 space-y-3">
+    <div className="rounded-2xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-white dark:bg-[var(--jvx-surface-card)] p-3 sm:p-4">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <nav aria-label="Etapas da lição" className="w-full lg:flex-1">
+        <nav aria-label="Etapas da lição" className="w-full lg:flex-1 min-w-0">
           <ol className="relative grid grid-cols-4 items-start gap-1 sm:gap-2">
             {steps.map((item, idx) => {
               const isActive = currentStep === item.step;
@@ -34,7 +34,7 @@ export function LessonStepper({
                     <span
                       aria-hidden="true"
                       className={cn(
-                        'absolute top-4 left-[55%] w-[90%] h-0.5 pointer-events-none',
+                        'absolute top-4 left-[50%] w-full h-0.5 pointer-events-none z-0 transition-colors',
                         isCompleted
                           ? 'bg-[var(--jvx-success)]'
                           : 'bg-slate-200 dark:bg-white/15'
@@ -46,11 +46,11 @@ export function LessonStepper({
                     type="button"
                     onClick={() => onSelectStep(item.step)}
                     aria-current={isActive ? 'step' : undefined}
-                    className="group relative z-10 flex flex-col items-center gap-1.5 min-h-[44px] w-full px-1 cursor-pointer focus-visible:rounded-xl"
+                    className="group relative z-10 flex flex-col items-center gap-1.5 min-h-[44px] w-full px-0.5 sm:px-1 cursor-pointer focus-visible:rounded-xl"
                   >
                     <span
                       className={cn(
-                        'flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold transition',
+                        'flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold transition shadow-sm',
                         isActive
                           ? 'bg-[var(--jvx-gold)] text-[var(--jvx-navy)] ring-4 ring-[var(--jvx-gold)]/25'
                           : isCompleted
@@ -58,7 +58,7 @@ export function LessonStepper({
                             : 'border border-slate-300 dark:border-[var(--jvx-border-subtle)] bg-slate-100 dark:bg-[var(--jvx-bg)] text-slate-600 dark:text-[var(--jvx-text-secondary)] group-hover:border-[var(--jvx-gold)]'
                       )}
                     >
-                      {isCompleted ? <Check className="h-4 w-4" aria-hidden="true" /> : item.step}
+                      {isCompleted ? <Check className="h-4 w-4 stroke-[2.75]" aria-hidden="true" /> : item.step}
                     </span>
                     <span
                       className={cn(
@@ -83,12 +83,14 @@ export function LessonStepper({
           <button
             type="button"
             onClick={onChangeScenario}
-            className="inline-flex items-center justify-center gap-1.5 self-center lg:self-auto rounded-xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-slate-50 dark:bg-[var(--jvx-bg)] px-3 py-2 min-h-[40px] text-xs font-medium text-slate-600 dark:text-[var(--jvx-text-secondary)] hover:border-[var(--jvx-gold)] hover:text-[var(--jvx-gold)] transition shrink-0"
+            title="Trocar cenário de prática"
+            className="inline-flex items-center justify-center gap-2 self-stretch sm:self-center lg:self-auto rounded-xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-slate-50 dark:bg-[var(--jvx-bg)]/90 px-3 py-2 min-h-[40px] text-xs font-medium text-slate-700 dark:text-[var(--jvx-text-secondary)] hover:border-[var(--jvx-gold)] hover:text-[var(--jvx-gold)] transition shrink-0 cursor-pointer"
           >
-            <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            <span className="truncate max-w-[230px] sm:max-w-none">
+            <Briefcase className="h-3.5 w-3.5 text-[var(--jvx-gold)] shrink-0" aria-hidden="true" />
+            <span className="truncate max-w-[230px] sm:max-w-[260px] lg:max-w-[240px]">
               Cenário: {scenarioLabel}
             </span>
+            <RefreshCw className="h-3 w-3 opacity-70 shrink-0" aria-hidden="true" />
           </button>
         )}
       </div>

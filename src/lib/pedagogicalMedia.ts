@@ -32,6 +32,7 @@ const MEDIA_REGISTRY: Record<ScenarioMediaKey, Omit<LessonMediaAsset, 'scenarioK
   business_intro: {
     scenarioLabel: 'Networking & Apresentações Profissionais',
     altText: 'Ilustração contextual de apresentação profissional em ambiente de negócios',
+    heroImageUrl: '/media/scenarios/business-networking.webp',
     fallbackGradient: 'from-[#07182E] via-[#102A46] to-[#1F4E79]',
     accentColor: '#D4AF37',
   },

@@ -2,13 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Bot,
   Send,
   CheckCircle2,
-  Sparkles,
-  BookOpen,
   Volume2,
-  ClipboardCheck,
   ArrowRight,
   Blocks,
   Mic,
@@ -29,10 +25,12 @@ import {
   SecondaryButton,
 } from '@/components/ui';
 import {
+  AIConversationPanel,
   AudioPhraseCard,
   GrammarCard,
   LessonHero,
   LessonStepper,
+  LessonSupportPanel,
   VocabularyPanel,
 } from '@/components/pedagogy';
 import { speakText, startSpeechRecognition, type SpeechRecognitionHandle } from '@/lib/speech';
@@ -508,404 +506,290 @@ export function LessonPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Coluna Esquerda de Apoio nas Etapas 2, 3 e 4 */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="rounded-2xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-white dark:bg-[var(--jvx-surface-card)] p-5">
-              <div>
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[var(--jvx-text-secondary)] mb-2.5 flex items-center gap-1.5">
-                  <BookOpen className="h-3.5 w-3.5" />
-                  Chunks Estruturais (Ouça e repita)
-                </h2>
-                <div className="space-y-2">
-                  {chunks.map((c) => (
-                    <AudioPhraseCard
-                      key={c.chunk}
-                      phrase={c.chunk}
-                      translation={c.pt}
-                      isPlaying={playingText === c.chunk}
-                      onPlay={handlePlay}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Banco de Vocabulário / Peças de Montar */}
-              <div className="mt-5 pt-4 border-t border-slate-200 dark:border-[var(--jvx-border-subtle)]">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[var(--jvx-text-secondary)] mb-2 flex items-center gap-1.5">
-                  <Blocks className="h-3.5 w-3.5 text-[var(--jvx-gold)]" />
-                  Banco de Vocabulário (Peças de Montar)
-                </h2>
-                <VocabularyPanel
-                  items={activeWordBank}
-                  playingText={playingText}
-                  onInsertWord={handleInsertWord}
-                  onPlay={handlePlay}
-                  onOpenGlossary={() => setRefModal('glossary')}
-                />
-
-                {/* Botão de Consulta Rápida às Regras */}
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    onClick={() => setRefModal('grammar')}
-                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-slate-50 dark:bg-[var(--jvx-bg)] px-3 py-2.5 min-h-[40px] text-xs font-semibold text-slate-700 dark:text-[var(--jvx-gold)] hover:border-[var(--jvx-gold)] transition cursor-pointer"
-                  >
-                    <Lightbulb className="h-3.5 w-3.5" />
-                    Regras Gramaticais ({pedagogy.grammarRules.length})
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Coluna Direita: Etapas 2, 3 e 4 (preservadas com altura segura para mobile) */}
-          <div className="lg:col-span-7 flex flex-col rounded-2xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-white dark:bg-[var(--jvx-surface-card)] overflow-hidden min-h-[460px] lg:h-[640px]">
-
-          {step === 2 && (
-            <FixationGameStage
-              challenges={fixationChallenges}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+          {/* Coluna Esquerda (Desktop) / Seção Expansível abaixo (Mobile na Etapa 4): Material de Apoio */}
+          <div className="lg:col-span-5 order-2 lg:order-1">
+            <LessonSupportPanel
+              chunks={chunks}
+              wordBank={activeWordBank}
+              grammarRules={pedagogy.grammarRules}
               playingText={playingText}
               onPlay={handlePlay}
-              onComplete={() => setStep(3)}
+              onInsertWord={handleInsertWord}
+              onOpenGlossary={() => setRefModal('glossary')}
+              onOpenGrammarModal={() => setRefModal('grammar')}
+              collapsibleOnMobile={step === 3 || step === 4}
             />
-          )}
+          </div>
 
-          {step === 3 && (
-            <>
-              <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Bot className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-semibold">Etapa 3 • Prática Guiada IA</span>
-                  </div>
-                  <span className="text-xs font-semibold text-blue-500">{lessonProgress}% concluído</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                  <div
-                    className={`h-full transition-all ${lessonProgress >= 80 ? 'bg-emerald-500' : 'bg-blue-600'}`}
-                    style={{ width: `${Math.min(100, lessonProgress)}%` }}
-                  />
-                </div>
-              </div>
+          {/* Coluna Direita (Desktop) / Primeiro bloco (Mobile): Etapa ativa */}
+          {step === 4 ? (
+            <div className="lg:col-span-7 order-1 lg:order-2">
+              <ContentCard
+                variant="highlight"
+                padding="none"
+                className="overflow-hidden border-[var(--jvx-gold)]/65 dark:border-[var(--jvx-border-gold)] shadow-[var(--jvx-shadow-card)]"
+              >
+                <div className="relative p-4 sm:p-6 space-y-5 bg-gradient-to-b from-[var(--jvx-gold)]/[0.06] via-transparent to-transparent">
+                  {/* Identificação da Etapa + Áudio da Missão */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#9A7B16] dark:text-[var(--jvx-gold)]">
+                      <Trophy className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>
+                        Etapa 4 de 4 — {customPrompt ? 'Reforço Adaptado' : 'Exercício Final'}
+                      </span>
+                    </div>
 
-              <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                {messages.map((m, idx) => (
-                  <div key={idx} className={`flex flex-col ${m.role === 'student' ? 'items-end' : 'items-start'}`}>
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-                        m.role === 'student'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p>{m.text}</p>
-                        {m.role === 'teacher' && (
-                          <button
-                            type="button"
-                            onClick={() => handlePlay(m.text)}
-                            title="Ouvir voz neural"
-                            className={`p-1 rounded-md transition shrink-0 ${
-                              playingText === m.text
-                                ? 'text-blue-500 bg-blue-500/15 animate-pulse'
-                                : 'text-slate-400 hover:text-blue-500 hover:bg-blue-500/10'
-                            }`}
-                          >
-                            <Volume2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                      {m.explanationPt && (
-                        <p className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300">
-                          {m.explanationPt}
-                        </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handlePlay(activePrompt)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-slate-50 dark:bg-[var(--jvx-bg)]/80 px-2.5 py-1.5 min-h-[34px] text-xs font-medium text-[#9A7B16] dark:text-[var(--jvx-gold)] hover:border-[var(--jvx-gold)] transition cursor-pointer"
+                        title="Ouvir missão em áudio"
+                      >
+                        <Volume2
+                          className={`h-3.5 w-3.5 ${playingText === activePrompt ? 'animate-pulse' : ''}`}
+                          aria-hidden="true"
+                        />
+                        <span>Ouvir missão</span>
+                      </button>
+
+                      {customPrompt && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomPrompt(null);
+                            setExerciseAnswer('');
+                            setEvalResult(null);
+                          }}
+                          className="text-xs text-slate-500 dark:text-[var(--jvx-text-secondary)] hover:text-[var(--jvx-info)] underline cursor-pointer"
+                        >
+                          Voltar à missão original
+                        </button>
                       )}
-                      {m.corrections && m.corrections.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {m.corrections.map((corr, cIdx) => (
-                            <div key={cIdx} className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-2 text-xs">
-                              <span className="line-through text-rose-500 mr-1.5">{corr.original}</span>
-                              <span className="font-semibold text-emerald-500">→ {corr.corrected}</span>
-                              <p className="text-slate-600 dark:text-slate-300 mt-0.5">{corr.reason_pt}</p>
-                            </div>
+                    </div>
+                  </div>
+
+                  {/* Título + Instrução Real da Missão */}
+                  <div className="space-y-2">
+                    <h2 className="jvx-heading text-xl sm:text-2xl font-bold text-[#0B1F3B] dark:text-[var(--jvx-text-primary)]">
+                      Seu desafio final
+                    </h2>
+                    <p className="text-sm sm:text-[15px] text-slate-700 dark:text-[var(--jvx-text-secondary)] leading-relaxed">
+                      {activePrompt}
+                    </p>
+                    {customPrompt?.hint && (
+                      <p className="text-xs text-slate-500 dark:text-[var(--jvx-text-secondary)] bg-slate-100 dark:bg-[var(--jvx-bg)]/70 rounded-lg px-3 py-2 border border-slate-200 dark:border-[var(--jvx-border-subtle)]">
+                        Dica de reforço: {customPrompt.hint}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Área de Resposta */}
+                  <div className="space-y-2.5">
+                    <div className="relative">
+                      <label htmlFor="final-exercise-answer" className="sr-only">
+                        Resposta do desafio final
+                      </label>
+                      <textarea
+                        id="final-exercise-answer"
+                        rows={4}
+                        value={exerciseAnswer}
+                        onChange={(e) => setExerciseAnswer(e.target.value)}
+                        placeholder={
+                          isTranscribing
+                            ? 'Transcrevendo sua fala...'
+                            : isListening && micTarget === 'final'
+                              ? 'Ouvindo sua fala no microfone...'
+                              : 'Fale no microfone ou escreva suas frases aplicando os chunks + vocabulário...'
+                        }
+                        className="w-full rounded-xl border border-slate-300 dark:border-[var(--jvx-border-subtle)] bg-slate-50 dark:bg-[var(--jvx-bg)]/90 p-3.5 pb-7 text-sm text-slate-900 dark:text-[var(--jvx-text-primary)] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-[var(--jvx-gold)] focus:outline-none focus:ring-2 focus:ring-[var(--jvx-gold)]/20 transition resize-y min-h-[120px]"
+                      />
+                      <span
+                        aria-live="polite"
+                        className="pointer-events-none absolute bottom-2.5 right-3 text-[11px] font-medium text-slate-400 dark:text-slate-500"
+                      >
+                        {exerciseAnswer.length} caracteres
+                      </span>
+                    </div>
+
+                    {/* Controles de Microfone e Áudio da Própria Resposta */}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleMicFor('final')}
+                        disabled={isTranscribing}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 min-h-[44px] text-xs font-semibold transition cursor-pointer ${
+                          isListening && micTarget === 'final'
+                            ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
+                            : 'border-slate-300 dark:border-[var(--jvx-border-subtle)] bg-white dark:bg-[var(--jvx-bg)]/80 text-[#9A7B16] dark:text-[var(--jvx-gold)] hover:border-[var(--jvx-gold)]'
+                        }`}
+                      >
+                        {isListening && micTarget === 'final' ? (
+                          <>
+                            <MicOff className="h-4 w-4 shrink-0" aria-hidden="true" />
+                            <span>Parar gravação</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="h-4 w-4 shrink-0" aria-hidden="true" />
+                            <span>{isTranscribing ? 'Transcrevendo...' : 'Falar resposta (Speaking)'}</span>
+                          </>
+                        )}
+                      </button>
+
+                      {exerciseAnswer.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => handlePlay(exerciseAnswer)}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-slate-50 dark:bg-[var(--jvx-bg)]/80 px-3.5 py-2.5 min-h-[44px] text-xs font-medium text-slate-700 dark:text-[var(--jvx-text-secondary)] hover:border-[var(--jvx-gold)] hover:text-[var(--jvx-gold)] transition cursor-pointer"
+                        >
+                          <Volume2
+                            className={`h-3.5 w-3.5 shrink-0 ${
+                              playingText === exerciseAnswer ? 'animate-pulse text-[var(--jvx-gold)]' : ''
+                            }`}
+                            aria-hidden="true"
+                          />
+                          <span>Ouvir minha resposta</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CTA Principal */}
+                  <PrimaryButton
+                    fullWidth
+                    size="lg"
+                    disabled={evalLoading || !exerciseAnswer.trim()}
+                    onClick={handleEvaluateExercise}
+                    className="shadow-md"
+                  >
+                    <Send className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>
+                      {evalLoading ? 'Avaliando resposta...' : 'Enviar para Avaliação & Atualizar Domínio'}
+                    </span>
+                  </PrimaryButton>
+
+                  {errorMsg && (
+                    <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-500 dark:text-rose-400">
+                      {errorMsg}
+                    </div>
+                  )}
+
+                  {evalResult && (
+                    <div className="space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-500 dark:text-[var(--jvx-text-secondary)]">
+                          Nota da Tentativa
+                        </span>
+                        <span className="text-lg font-bold text-emerald-500">
+                          {evalResult.evaluation.score_0_100}/100
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                        {evalResult.evaluation.feedback_pt}
+                      </p>
+                      {evalResult.evaluation.detected_error_tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {evalResult.evaluation.detected_error_tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-500"
+                            >
+                              #{tag}
+                            </span>
                           ))}
                         </div>
                       )}
-                    </div>
-
-                    {m.role === 'teacher' && m.suggestions && m.suggestions.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {m.suggestions.map((sug) => (
-                          <button
-                            key={sug}
-                            type="button"
-                            onClick={() => handleSend(sug)}
-                            className="inline-flex items-center gap-1 rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 px-3 py-1 text-xs text-blue-700 dark:text-blue-300 hover:bg-blue-100 transition"
-                          >
-                            <Sparkles className="h-3 w-3" />
-                            {sug}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {sending && (
-                  <div className="flex items-start">
-                    <div className="rounded-2xl bg-slate-100 dark:bg-slate-800 px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 animate-pulse">
-                      Professor IA está respondendo...
-                    </div>
-                  </div>
-                )}
-
-                {lessonProgress >= 80 && (
-                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="text-xs">
-                      <p className="font-semibold text-emerald-500">Prática guiada concluída!</p>
-                      <p className="text-slate-400">Agora teste sua escrita sem dicas no Exercício Final.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAdvanceToExercise}
-                      className="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3.5 py-2 text-xs font-semibold text-white transition shrink-0"
-                    >
-                      Ir para Exercício Final →
-                    </button>
-                  </div>
-                )}
-
-                {errorMsg && (
-                  <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400">
-                    {errorMsg}
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSend();
-                }}
-                className="p-4 border-t border-slate-200 dark:border-[#1F4E79]/40 flex gap-2"
-              >
-                <button
-                  type="button"
-                  onClick={toggleMic}
-                  title={isListening ? 'Parar microfone' : 'Praticar Fala (Speaking)'}
-                  className={`rounded-xl px-3.5 py-2.5 border transition shrink-0 ${
-                    isListening
-                      ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
-                      : 'border-slate-300 dark:border-[#1F4E79] text-[#D4AF37] hover:bg-[#D4AF37]/10'
-                  }`}
-                >
-                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                </button>
-                <input
-                  ref={chatInputRef}
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={
-                    isTranscribing
-                      ? 'Transcrevendo sua fala...'
-                      : isListening && micTarget === 'chat'
-                        ? 'Ouvindo sua fala...'
-                        : 'Fale no microfone ou escreva sua frase...'
-                  }
-                  className="flex-1 rounded-xl border border-slate-300 dark:border-[#1F4E79] bg-[#F4F6FA] dark:bg-[#06152B] px-4 py-2.5 text-sm focus:border-[#D4AF37] focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={sending || !input.trim()}
-                  className="jvx-btn-primary disabled:opacity-50 px-4 py-2.5"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
-            </>
-          )}
-
-          {step === 4 && (
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-600">
-                <ClipboardCheck className="h-4 w-4" />
-                Etapa 4 de 4 • {customPrompt ? 'Reforço Adaptado' : 'Exercício Final (Sem Dicas)'}
-              </div>
-
-              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-xs font-semibold text-slate-400">Missão</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handlePlay(activePrompt)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-[#1F4E79]/60 px-2.5 py-1 text-[11px] font-medium text-[#D4AF37] hover:bg-[#D4AF37]/10 transition"
-                      title="Ouvir missão em áudio"
-                    >
-                      <Volume2 className={`h-3.5 w-3.5 ${playingText === activePrompt ? 'animate-pulse' : ''}`} />
-                      Ouvir missão
-                    </button>
-                    {customPrompt && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCustomPrompt(null);
-                          setExerciseAnswer('');
-                          setEvalResult(null);
-                        }}
-                        className="text-[11px] text-slate-400 hover:text-blue-400 underline"
-                      >
-                        Voltar à missão original
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <p className="text-sm text-slate-800 dark:text-slate-200">{activePrompt}</p>
-                {customPrompt?.hint && (
-                  <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Dica: {customPrompt.hint}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <textarea
-                  rows={4}
-                  value={exerciseAnswer}
-                  onChange={(e) => setExerciseAnswer(e.target.value)}
-                  placeholder={
-                    isTranscribing
-                      ? 'Transcrevendo sua fala...'
-                      : isListening && micTarget === 'final'
-                        ? 'Ouvindo sua fala no microfone...'
-                        : 'Fale no microfone ou escreva suas frases aplicando os chunks + vocabulário...'
-                  }
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-3.5 text-sm focus:border-blue-500 focus:outline-none"
-                />
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleMicFor('final')}
-                    disabled={isTranscribing}
-                    className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
-                      isListening && micTarget === 'final'
-                        ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
-                        : 'border-slate-300 dark:border-[#1F4E79] text-[#D4AF37] hover:bg-[#D4AF37]/10'
-                    }`}
-                  >
-                    {isListening && micTarget === 'final' ? (
-                      <>
-                        <MicOff className="h-4 w-4" />
-                        Parar gravação
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="h-4 w-4" />
-                        {isTranscribing ? 'Transcrevendo...' : 'Falar resposta (Speaking)'}
-                      </>
-                    )}
-                  </button>
-
-                  {exerciseAnswer.trim() && (
-                    <button
-                      type="button"
-                      onClick={() => handlePlay(exerciseAnswer)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-[#1F4E79]/60 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-[#D4AF37] transition"
-                    >
-                      <Volume2 className={`h-3.5 w-3.5 ${playingText === exerciseAnswer ? 'animate-pulse text-[#D4AF37]' : ''}`} />
-                      Ouvir minha resposta
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                disabled={evalLoading || !exerciseAnswer.trim()}
-                onClick={handleEvaluateExercise}
-                className="w-full jvx-btn-primary disabled:opacity-50 py-2.5 text-sm"
-              >
-                {evalLoading ? 'Avaliando resposta...' : 'Enviar para Avaliação & Atualizar Domínio'}
-              </button>
-
-              {errorMsg && (
-                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400">
-                  {errorMsg}
-                </div>
-              )}
-
-              {evalResult && (
-                <div className="space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-500">Nota da Tentativa</span>
-                    <span className="text-lg font-bold text-emerald-500">
-                      {evalResult.evaluation.score_0_100}/100
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-800 dark:text-slate-200">
-                    {evalResult.evaluation.feedback_pt}
-                  </p>
-                  {evalResult.evaluation.detected_error_tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {evalResult.evaluation.detected_error_tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-500"
-                        >
-                          #{tag}
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-[var(--jvx-text-secondary)] flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" aria-hidden="true" />
+                        <span>
+                          Domínio consolidado:{' '}
+                          <strong className="text-slate-900 dark:text-white">
+                            {evalResult.mastery.masteryScore}%
+                          </strong>{' '}
+                          ({evalResult.mastery.evidenceCount} evidências • {evalResult.mastery.status})
                         </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <span>
-                      Domínio consolidado:{' '}
-                      <strong className="text-slate-900 dark:text-white">
-                        {evalResult.mastery.masteryScore}%
-                      </strong>{' '}
-                      ({evalResult.mastery.evidenceCount} evidências • {evalResult.mastery.status})
-                    </span>
-                  </div>
-
-                  {evalResult.mastery.status === 'mastered' && nextLesson && (
-                    <Link
-                      to={`/lessons/${nextLesson.id}`}
-                      className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-semibold text-white transition"
-                    >
-                      Competência Dominada! Ir para a Próxima Aula: {nextLesson.title}
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  )}
-
-                  {evalResult.evaluation.adapted_exercise && (
-                    <div className="mt-2 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-xs space-y-2">
-                      <div>
-                        <p className="font-semibold text-blue-400 mb-1">Reforço Adaptado Recomendado:</p>
-                        <p className="text-slate-200">{evalResult.evaluation.adapted_exercise.question}</p>
-                        <p className="text-slate-400 mt-1">Dica: {evalResult.evaluation.adapted_exercise.hint_pt}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const adapted = evalResult.evaluation.adapted_exercise!;
-                          setCustomPrompt({ question: adapted.question, hint: adapted.hint_pt });
-                          setExerciseAnswer('');
-                          setEvalResult(null);
-                        }}
-                        className="rounded-lg bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white transition"
-                      >
-                        Praticar este Reforço Agora →
-                      </button>
+
+                      {evalResult.mastery.status === 'mastered' && nextLesson && (
+                        <Link
+                          to={`/lessons/${nextLesson.id}`}
+                          className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 px-4 text-xs font-semibold text-white transition"
+                        >
+                          <span>Competência Dominada! Ir para a Próxima Aula: {nextLesson.title}</span>
+                          <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        </Link>
+                      )}
+
+                      {evalResult.evaluation.adapted_exercise && (
+                        <div className="mt-2 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-xs space-y-2">
+                          <div>
+                            <p className="font-semibold text-blue-500 dark:text-blue-400 mb-1">
+                              Reforço Adaptado Recomendado:
+                            </p>
+                            <p className="text-slate-800 dark:text-slate-200">
+                              {evalResult.evaluation.adapted_exercise.question}
+                            </p>
+                            <p className="text-slate-500 dark:text-slate-400 mt-1">
+                              Dica: {evalResult.evaluation.adapted_exercise.hint_pt}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const adapted = evalResult.evaluation.adapted_exercise!;
+                              setCustomPrompt({ question: adapted.question, hint: adapted.hint_pt });
+                              setExerciseAnswer('');
+                              setEvalResult(null);
+                            }}
+                            className="rounded-lg bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white transition cursor-pointer"
+                          >
+                            Praticar este Reforço Agora →
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
+              </ContentCard>
+            </div>
+          ) : step === 3 ? (
+            /* Coluna Direita (Desktop) / Primeiro bloco (Mobile): Etapa 3 — Tutor IA */
+            <div className="lg:col-span-7 order-1 lg:order-2">
+              <AIConversationPanel
+                cefrLevel={cefrLevel}
+                targetLanguage={targetLang}
+                messages={messages}
+                lessonProgress={lessonProgress}
+                input={input}
+                inputRef={chatInputRef}
+                messagesEndRef={messagesEndRef}
+                isSending={sending}
+                isListening={isListening}
+                isTranscribing={isTranscribing}
+                micTarget={micTarget}
+                playingText={playingText}
+                errorMsg={errorMsg}
+                onChangeInput={setInput}
+                onToggleMic={toggleMic}
+                onSend={handleSend}
+                onPlay={handlePlay}
+                onAdvanceToExercise={handleAdvanceToExercise}
+              />
+            </div>
+          ) : (
+            /* Coluna Direita: Etapa 2 (preservada) */
+            <div className="lg:col-span-7 order-1 lg:order-2 flex flex-col rounded-2xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-white dark:bg-[var(--jvx-surface-card)] overflow-hidden min-h-[460px] lg:h-[640px]">
+              <FixationGameStage
+                challenges={fixationChallenges}
+                playingText={playingText}
+                onPlay={handlePlay}
+                onComplete={() => setStep(3)}
+              />
             </div>
           )}
         </div>
-      </div>
       )}
 
       <LessonReferenceModal
