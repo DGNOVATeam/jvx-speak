@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2, Lock, Play, BookOpen, Globe } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
+import { resolveLessonMedia } from '@/lib/pedagogicalMedia';
 
 export function CoursesPage() {
   const { user } = useAuth();
@@ -187,7 +188,7 @@ export function CoursesPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {lessons.map((lesson) => {
                     const compId = lesson.lesson_competencies?.[0]?.competency_id;
                     const m = compId ? masteryMap.get(compId) : undefined;
@@ -197,55 +198,86 @@ export function CoursesPage() {
                       reqs.length > 0 &&
                       reqs.some((pid) => masteryMap.get(pid)?.status !== 'mastered') &&
                       !isMastered;
+                    const media = resolveLessonMedia(lesson.title);
 
                     return (
                       <div
                         key={lesson.id}
-                        className={`rounded-xl border p-4 flex flex-col justify-between transition ${
+                        className={`group rounded-2xl border overflow-hidden flex flex-col justify-between transition ${
                           isMastered
                             ? 'border-emerald-500/40 bg-emerald-500/5'
                             : isLocked
                             ? 'border-slate-200 dark:border-[#1F4E79]/20 bg-slate-50 dark:bg-[#06152B]/60 opacity-75'
-                            : 'border-slate-200 dark:border-[#1F4E79]/40 bg-[#F4F6FA]/50 dark:bg-[#06152B]'
+                            : 'border-slate-200 dark:border-[#1F4E79]/40 bg-[#F4F6FA]/50 dark:bg-[#06152B] hover:border-[#D4AF37]/60'
                         }`}
                       >
                         <div>
-                          <div className="flex items-center justify-between text-[11px] mb-2">
-                            <span className="text-slate-400 flex items-center gap-1">
-                              <BookOpen className="h-3 w-3" />
-                              {lesson.estimated_minutes} min
-                            </span>
-                            {isMastered ? (
-                              <span className="inline-flex items-center gap-1 font-semibold text-emerald-500">
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                Dominada ({Number(m?.mastery_score ?? 0)}%)
-                              </span>
-                            ) : isLocked ? (
-                              <span className="inline-flex items-center gap-1 text-slate-400">
-                                <Lock className="h-3 w-3" />
-                                Bloqueada
-                              </span>
-                            ) : (
-                              <span className="text-[#D4AF37] font-semibold">Disponível</span>
+                          {/* Capa Contextualizada da Lição */}
+                          <div
+                            className={`relative h-36 w-full overflow-hidden bg-gradient-to-br ${media.fallbackGradient}`}
+                          >
+                            {media.heroImageUrl && (
+                              <img
+                                src={media.heroImageUrl}
+                                alt={media.altText}
+                                loading="lazy"
+                                className={`h-full w-full object-cover transition-transform duration-500 ${
+                                  isLocked ? 'grayscale opacity-50' : 'group-hover:scale-105'
+                                }`}
+                              />
                             )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#06152B] via-[#06152B]/25 to-transparent" />
+
+                            {/* Badges superiores */}
+                            <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2 text-[11px]">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2.5 py-0.5 text-slate-200 font-medium">
+                                <BookOpen className="h-3 w-3 text-[#D4AF37]" />
+                                {lesson.estimated_minutes} min
+                              </span>
+                              {isMastered ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2.5 py-0.5 font-semibold text-white shadow">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Dominada ({Number(m?.mastery_score ?? 0)}%)
+                                </span>
+                              ) : isLocked ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-0.5 text-slate-300">
+                                  <Lock className="h-3 w-3" />
+                                  Bloqueada
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-[#D4AF37] px-2.5 py-0.5 font-bold text-[#0B1F3B] shadow">
+                                  Disponível
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Tag do Cenário */}
+                            <span className="absolute bottom-2 left-3 text-[10px] font-semibold uppercase tracking-wider text-[#D4AF37]">
+                              {media.scenarioLabel}
+                            </span>
                           </div>
-                          <h3 className="font-semibold text-sm text-[#0B1F3B] dark:text-white">
-                            {lesson.title}
-                          </h3>
+
+                          <div className="p-4 pb-2">
+                            <h3 className="font-bold text-sm text-[#0B1F3B] dark:text-white leading-snug">
+                              {lesson.title}
+                            </h3>
+                          </div>
                         </div>
 
                         {!isLocked && (
-                          <Link
-                            to={`/lessons/${lesson.id}`}
-                            className={`mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg py-2 px-3 text-xs font-semibold transition ${
-                              isMastered
-                                ? 'border border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10'
-                                : 'jvx-btn-primary'
-                            }`}
-                          >
-                            <Play className="h-3 w-3" />
-                            {isMastered ? 'Revisar Lição' : 'Estudar Agora'}
-                          </Link>
+                          <div className="p-4 pt-2">
+                            <Link
+                              to={`/lessons/${lesson.id}`}
+                              className={`w-full inline-flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-semibold transition ${
+                                isMastered
+                                  ? 'border border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10'
+                                  : 'jvx-btn-primary'
+                              }`}
+                            >
+                              <Play className="h-3 w-3" />
+                              {isMastered ? 'Revisar Lição' : 'Estudar Agora'}
+                            </Link>
+                          </div>
                         )}
                       </div>
                     );
