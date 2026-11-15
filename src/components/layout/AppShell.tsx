@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LogOut, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
+import { InstallAppPrompt } from '@/components/pwa/InstallAppPrompt';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Início', iconName: 'home' },
@@ -66,6 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-[#1F4E79]/40 space-y-3">
+          <InstallAppPrompt variant="sidebar" />
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-300 truncate">
               {profile?.full_name || 'Aluno'}
@@ -103,14 +105,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             alt="JVX SPEAK"
             className="h-8 w-auto"
           />
-          <button
-            type="button"
-            onClick={() => setDark((d) => !d)}
-            className="p-1.5 rounded-lg text-[#D4AF37]"
-            aria-label="Alternar tema claro e escuro"
-          >
-            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <InstallAppPrompt variant="header" />
+            <button
+              type="button"
+              onClick={() => setDark((d) => !d)}
+              className="p-1.5 rounded-lg text-[#D4AF37]"
+              aria-label="Alternar tema claro e escuro"
+            >
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto">{children}</main>
