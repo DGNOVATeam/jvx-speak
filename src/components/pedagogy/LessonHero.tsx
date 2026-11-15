@@ -54,21 +54,26 @@ export function LessonHero({
       <div
         className={`relative bg-gradient-to-br ${media.fallbackGradient} text-[var(--jvx-text-primary)]`}
       >
-        {/* Imagem contextual opcional à direita com transição suave em gradiente */}
+        {/* Imagem contextual em degradê suave de opacidade (sem corte reto) */}
         {showHeroImage && (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-44 sm:w-72 md:w-80 lg:w-96 overflow-hidden"
+            className="pointer-events-none absolute inset-y-0 right-0 w-full sm:w-[75%] lg:w-[65%] overflow-hidden"
+            style={{
+              WebkitMaskImage:
+                'linear-gradient(to left, rgba(0,0,0,0.95) 18%, rgba(0,0,0,0.55) 52%, rgba(0,0,0,0) 92%)',
+              maskImage:
+                'linear-gradient(to left, rgba(0,0,0,0.95) 18%, rgba(0,0,0,0.55) 52%, rgba(0,0,0,0) 92%)',
+            }}
           >
             <img
               src={media.heroImageUrl}
               alt=""
               loading="lazy"
               onError={() => setImgError(true)}
-              className="h-full w-full object-cover object-center opacity-55 sm:opacity-85"
+              className="h-full w-full object-cover object-center opacity-45 sm:opacity-90"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#07182E] via-[#07182E]/85 sm:via-[#07182E]/65 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#07182E]/85 via-transparent to-[#07182E]/35" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#07182E]/70 via-transparent to-[#07182E]/35" />
           </div>
         )}
 
