@@ -27,13 +27,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Buscar contexto da aula no currículo oficial
-    const { data: lesson, error: lessonErr } = await adminClient
-      .schema('core_curriculum')
-      .from('lessons')
-      .select('id, title, vocabulary_chunks, unit:units(cefr_level, objectives)')
-      .eq('id', lessonId)
-      .single();
+    // Buscar contexto da aula no currículo oficial e foco do aluno
+    const [{ data: lesson, error: lessonErr }, { data: goal }] = await Promise.all([
+      adminClient
+        .schema('core_curriculum')
+        .from('lessons')
+        .select('id, title, vocabulary_chunks, unit:units(cefr_level, objectives, course:courses(target_language, pedagogical_framework))')
+        .eq('id', lessonId)
+        .single(),
+      adminClient
+        .schema('core_identity')
+        .from('learning_goals')
+        .select('focus_area')
+        .eq('student_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle(),
+    ]);
 
     if (lessonErr || !lesson) {
       return new Response(JSON.stringify({ error: 'Lesson not found' }), {
@@ -45,27 +54,41 @@ Deno.serve(async (req) => {
     const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
     const provider = new GeminiProvider(geminiKey, 'gemini-flash-lite-latest');
 
-    const cefrLevel = (lesson.unit as { cefr_level?: string })?.cefr_level ?? 'A1';
-    const objectives = (lesson.unit as { objectives?: string[] })?.objectives ?? [];
+    const unitObj = lesson.unit as {
+      cefr_level?: string;
+      objectives?: string[];
+      course?: { target_language?: string; pedagogical_framework?: string };
+    } | null;
+    const cefrLevel = unitObj?.cefr_level ?? 'A1';
+    const objectives = unitObj?.objectives ?? [];
+    const targetLang = unitObj?.course?.target_language ?? 'en';
+    const framework = unitObj?.course?.pedagogical_framework ?? 'CEFR';
+    const focusArea = goal?.focus_area ?? 'business_entrepreneur';
 
-    const systemPrompt = `You are TeacherAgent of jvxspeak, a structured CEFR English school for adult professionals and entrepreneurs.
-Current CEFR level: ${cefrLevel}.
+    const languageInstruction =
+      targetLang === 'es-ES'
+        ? 'You teach Peninsular Spanish (Spain) following the Instituto Cervantes (PCIC/CEFR) pedagogical mapping. Use natural Spain Spanish vocabulary (e.g. vale, quedar, ordenador, móvil, vosotros when plural).'
+        : 'You teach English following the CEFR framework.';
+
+    const systemPrompt = `You are TeacherAgent of JVX SPEAK, a structured language academy for adult learners.
+${languageInstruction}
+Framework: ${framework} | Current level: ${cefrLevel} | Student focus: ${focusArea}.
 Lesson: "${lesson.title}".
 Scenario context for this session: "${scenarioVariant}".
 Objectives: ${JSON.stringify(objectives)}.
 Target lexical chunks: ${JSON.stringify(lesson.vocabulary_chunks)}.
 
 Rules:
-- Keep English vocabulary and speed adapted strictly to CEFR ${cefrLevel}.
+- Keep target language vocabulary and complexity adapted strictly to ${cefrLevel} and the student's focus (${focusArea}).
 - Vary your questions and context according to the scenario "${scenarioVariant}" so repeating a lesson feels fresh.
 - Guide the student to build their OWN sentences using the target chunks + new vocabulary, instead of just repeating fixed phrases.
 - Provide gentle, accurate inline corrections in Portuguese (PT-BR) when the student makes grammar or lexical mistakes.
-- Provide up to 3 short suggested next replies in English if the student needs help.
-- Provide 4 to 6 helpful "word_bank" items (single words or short 2-word expressions in English + PT-BR meaning) that help the student answer your next question creatively (e.g. "at night", "client", "deadline", "partner").
+- Provide up to 3 short suggested next replies in the target language (${targetLang}) if the student needs help.
+- Provide 4 to 6 helpful "word_bank" items (words or short expressions in ${targetLang} + PT-BR meaning) relevant to ${focusArea}.
 - Estimate "lesson_progress_pct" from 0 to 100 based on how many turns/chunks the student has practiced (~20-25% per good turn; reach >= 80% after 4 good turns).
 - Return ONLY JSON matching:
 {
-  "reply_en": string,
+  "reply_en": string (your reply in ${targetLang}),
   "explanation_pt": string (optional, brief PT-BR tip if needed),
   "inline_corrections": [{ "original": string, "corrected": string, "reason_pt": string }],
   "suggested_next_prompts": string[],

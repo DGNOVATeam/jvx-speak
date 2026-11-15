@@ -17,8 +17,26 @@ Deno.serve(async (req) => {
 
     const { adminClient, user } = auth;
 
+    const { data: profile } = await adminClient
+      .schema('core_identity')
+      .from('profiles')
+      .select('active_course_id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    let activeLang = 'en';
+    if (profile?.active_course_id) {
+      const { data: course } = await adminClient
+        .schema('core_curriculum')
+        .from('courses')
+        .select('target_language')
+        .eq('id', profile.active_course_id)
+        .maybeSingle();
+      if (course?.target_language) activeLang = course.target_language;
+    }
+
     const [{ data: competencies }, { data: prereqs }, { data: mastery }, { data: reviews }] = await Promise.all([
-      adminClient.schema('core_curriculum').from('competencies').select('*'),
+      adminClient.schema('core_curriculum').from('competencies').select('*').eq('target_language', activeLang),
       adminClient.schema('core_curriculum').from('competency_prerequisites').select('*'),
       adminClient.schema('core_learning').from('mastery_records').select('*').eq('student_id', user.id),
       adminClient.schema('core_learning').from('review_schedule').select('*').eq('student_id', user.id).eq('status', 'pending'),

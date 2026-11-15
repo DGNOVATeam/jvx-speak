@@ -12,9 +12,11 @@ import {
   ArrowRight,
   RefreshCw,
   Blocks,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { speakEnglish } from '@/lib/speech';
+import { speakText, startSpeechRecognition, type SpeechRecognitionHandle } from '@/lib/speech';
 
 interface ChatMessage {
   role: 'student' | 'teacher';
@@ -88,7 +90,7 @@ export function LessonPage() {
       const { data } = await supabase
         .schema('core_curriculum')
         .from('lessons')
-        .select('*, unit:units(*), lesson_competencies(competency_id)')
+        .select('*, unit:units(*, course:courses(target_language)), lesson_competencies(competency_id)')
         .eq('id', lessonId!)
         .single();
       return data;
@@ -142,10 +144,38 @@ export function LessonPage() {
     setEvalResult(null);
   }, [lessonId, lesson?.id]);
 
+  const targetLang =
+    ((lesson?.unit as { course?: { target_language?: string } } | null)?.course?.target_language as
+      | 'en'
+      | 'es-ES'
+      | undefined) ?? 'en';
+  const speechLang: 'en-US' | 'es-ES' = targetLang === 'es-ES' ? 'es-ES' : 'en-US';
+
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionHandle | null>(null);
+
+  const toggleMic = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    setErrorMsg(null);
+    setIsListening(true);
+    recognitionRef.current = startSpeechRecognition({
+      lang: speechLang,
+      onResult: (transcript) => {
+        setInput((prev) => (prev ? `${prev.trim()} ${transcript}` : transcript));
+      },
+      onError: (msg) => setErrorMsg(msg),
+      onEnd: () => setIsListening(false),
+    });
+  };
+
   const handlePlay = async (text: string) => {
     setPlayingText(text);
     try {
-      await speakEnglish(text);
+      await speakText(text, speechLang);
     } finally {
       setPlayingText(null);
     }
@@ -569,20 +599,36 @@ export function LessonPage() {
                   e.preventDefault();
                   handleSend();
                 }}
-                className="p-4 border-t border-slate-200 dark:border-slate-800 flex gap-2"
+                className="p-4 border-t border-slate-200 dark:border-[#1F4E79]/40 flex gap-2"
               >
+                <button
+                  type="button"
+                  onClick={toggleMic}
+                  title={isListening ? 'Parar microfone' : 'Praticar Fala (Speaking)'}
+                  className={`rounded-xl px-3.5 py-2.5 border transition shrink-0 ${
+                    isListening
+                      ? 'bg-rose-600 border-rose-500 text-white animate-pulse'
+                      : 'border-slate-300 dark:border-[#1F4E79] text-[#D4AF37] hover:bg-[#D4AF37]/10'
+                  }`}
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </button>
                 <input
                   ref={chatInputRef}
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Monte sua frase em inglês (ou clique nas peças ao lado)..."
-                  className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                  placeholder={
+                    isListening
+                      ? 'Ouvindo sua fala...'
+                      : 'Fale no microfone ou escreva sua frase...'
+                  }
+                  className="flex-1 rounded-xl border border-slate-300 dark:border-[#1F4E79] bg-[#F4F6FA] dark:bg-[#06152B] px-4 py-2.5 text-sm focus:border-[#D4AF37] focus:outline-none"
                 />
                 <button
                   type="submit"
                   disabled={sending || !input.trim()}
-                  className="rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-4 py-2.5 text-white transition"
+                  className="jvx-btn-primary disabled:opacity-50 px-4 py-2.5"
                 >
                   <Send className="h-4 w-4" />
                 </button>

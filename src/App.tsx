@@ -5,9 +5,11 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { AppShell } from '@/components/layout/AppShell';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import { CoursesPage } from '@/features/courses/CoursesPage';
 import { LessonPage } from '@/features/curriculum/LessonPage';
 import { SkillsPage } from '@/features/skills/SkillsPage';
 import { SchedulePage } from '@/features/schedule/SchedulePage';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 
 const queryClient = new QueryClient();
 
@@ -39,10 +41,11 @@ function ProtectedRoutes() {
     <AppShell>
       <Routes>
         <Route path="/" element={<DashboardPage />} />
-        <Route path="/courses" element={<DashboardPage />} />
+        <Route path="/courses" element={<CoursesPage />} />
         <Route path="/lessons/:lessonId" element={<LessonPage />} />
         <Route path="/skills" element={<SkillsPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

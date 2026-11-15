@@ -46,11 +46,18 @@ Deno.serve(async (req) => {
     }
 
     const cefrLevel = (lesson.unit as { cefr_level?: string })?.cefr_level ?? 'A1';
+    const targetLang = comp.target_language ?? 'en';
     const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
     const provider = new GeminiProvider(geminiKey, 'gemini-flash-lite-latest');
 
-    const systemPrompt = `You are AdaptiveTutorAgent of jvxspeak (CEFR English School).
-Evaluate the student's written exercise response for CEFR ${cefrLevel} competency "${comp.title}".
+    const langRule =
+      targetLang === 'es-ES'
+        ? 'Evaluate Peninsular Spanish (Spain / Instituto Cervantes PCIC) expectations.'
+        : 'Evaluate English CEFR expectations.';
+
+    const systemPrompt = `You are AdaptiveTutorAgent of JVX SPEAK.
+${langRule}
+Evaluate the student's written exercise response for level ${cefrLevel} competency "${comp.title}".
 Lesson target chunks: ${JSON.stringify(lesson.vocabulary_chunks)}.
 
 Rules:

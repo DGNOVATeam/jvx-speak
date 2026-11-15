@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/courses', label: 'Cursos', iconName: 'courses' },
   { to: '/skills', label: 'Progresso CEFR', iconName: 'progress' },
   { to: '/schedule', label: 'Agenda SRS', iconName: 'calendar' },
+  { to: '/settings', label: 'Meu Plano', iconName: 'settings' },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
