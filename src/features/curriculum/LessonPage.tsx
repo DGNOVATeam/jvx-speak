@@ -402,7 +402,7 @@ export function LessonPage() {
         /* ETAPA 1 — REDESENHO JVX SPEAK 2.0 (Desktop 2 colunas / Mobile coluna única) */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
           {/* Coluna Principal: Chunks Estruturais + Vocabulário */}
-          <div className="lg:col-span-7 space-y-5">
+          <div className="lg:col-span-7 min-w-0 space-y-5">
             <ContentCard variant="default" padding="md" className="space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="jvx-heading text-sm sm:text-base font-bold text-[#0B1F3B] dark:text-[var(--jvx-text-primary)] flex items-center gap-2">
@@ -442,7 +442,7 @@ export function LessonPage() {
           </div>
 
           {/* Coluna Complementar: Objetivos, Regras Gramaticais & Avanço */}
-          <div className="lg:col-span-5 space-y-5">
+          <div className="lg:col-span-5 min-w-0 space-y-5">
             <ContentCard variant="highlight" padding="md" className="space-y-4">
               <div className="space-y-1.5">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--jvx-info)]">
@@ -508,7 +508,7 @@ export function LessonPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
           {/* Coluna Esquerda (Desktop) / Seção Expansível abaixo (Mobile na Etapa 4): Material de Apoio */}
-          <div className="lg:col-span-5 order-2 lg:order-1">
+          <div className="lg:col-span-5 min-w-0 order-2 lg:order-1">
             <LessonSupportPanel
               chunks={chunks}
               wordBank={activeWordBank}
@@ -524,7 +524,7 @@ export function LessonPage() {
 
           {/* Coluna Direita (Desktop) / Primeiro bloco (Mobile): Etapa ativa */}
           {step === 4 ? (
-            <div className="lg:col-span-7 order-1 lg:order-2">
+            <div className="lg:col-span-7 min-w-0 order-1 lg:order-2">
               <ContentCard
                 variant="highlight"
                 padding="none"
@@ -756,7 +756,7 @@ export function LessonPage() {
             </div>
           ) : step === 3 ? (
             /* Coluna Direita (Desktop) / Primeiro bloco (Mobile): Etapa 3 — Tutor IA */
-            <div className="lg:col-span-7 order-1 lg:order-2">
+            <div className="lg:col-span-7 min-w-0 order-1 lg:order-2">
               <AIConversationPanel
                 cefrLevel={cefrLevel}
                 targetLanguage={targetLang}
@@ -780,7 +780,7 @@ export function LessonPage() {
             </div>
           ) : (
             /* Coluna Direita: Etapa 2 (preservada) */
-            <div className="lg:col-span-7 order-1 lg:order-2 flex flex-col rounded-2xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-white dark:bg-[var(--jvx-surface-card)] overflow-hidden min-h-[460px] lg:h-[640px]">
+            <div className="lg:col-span-7 min-w-0 order-1 lg:order-2 flex flex-col rounded-2xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-white dark:bg-[var(--jvx-surface-card)] overflow-hidden min-h-[460px] lg:h-[640px]">
               <FixationGameStage
                 challenges={fixationChallenges}
                 playingText={playingText}

@@ -32,8 +32,11 @@
 }
 
 @layer base {
+  html,
   body {
     font-family: var(--jvx-font-sans);
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   button:focus-visible,

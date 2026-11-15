@@ -23,7 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [dark]);
 
   return (
-    <div className="min-h-screen flex bg-[#F4F6FA] dark:bg-[#06152B] text-[#0B1F3B] dark:text-white">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex bg-[#F4F6FA] dark:bg-[#06152B] text-[#0B1F3B] dark:text-white">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col border-r border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B]">
         <div className="px-5 py-4 border-b border-slate-200 dark:border-[#1F4E79]/40">
@@ -114,8 +114,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col pb-16 md:pb-0">
-        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B]">
+      <div className="flex-1 min-w-0 w-full flex flex-col pb-16 md:pb-0">
+        <header className="md:hidden flex items-center justify-between gap-2 px-3 py-3 border-b border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] min-w-0">
           <img
             src={
               dark
@@ -139,7 +139,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto">{children}</main>
+        <main className="flex-1 min-w-0 p-3 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto">{children}</main>
       </div>
 
       {/* Mobile Bottom Nav */}
