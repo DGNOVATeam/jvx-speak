@@ -14,9 +14,19 @@ import {
   Blocks,
   Mic,
   MicOff,
+  BookMarked,
+  Lightbulb,
+  Trophy,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { speakText, startSpeechRecognition, type SpeechRecognitionHandle } from '@/lib/speech';
+import {
+  buildFixationChallenges,
+  getLessonPedagogy,
+  type WordItem,
+} from '@/features/curriculum/lessonPedagogy';
+import { FixationGameStage } from '@/features/curriculum/FixationGameStage';
+import { LessonReferenceModal } from '@/features/curriculum/LessonReferenceModal';
 
 interface ChatMessage {
   role: 'student' | 'teacher';
@@ -25,20 +35,6 @@ interface ChatMessage {
   corrections?: Array<{ original: string; corrected: string; reason_pt: string }>;
   suggestions?: string[];
 }
-
-interface WordItem {
-  en: string;
-  pt: string;
-}
-
-const DEFAULT_WORD_BANK: WordItem[] = [
-  { en: 'at night', pt: 'à noite' },
-  { en: 'in the afternoon', pt: 'à tarde' },
-  { en: 'client', pt: 'cliente' },
-  { en: 'team', pt: 'equipe' },
-  { en: 'partner', pt: 'sócio / parceiro' },
-  { en: 'deadline', pt: 'prazo' },
-];
 
 const SCENARIOS = [
   'Networking em evento de negócios',
@@ -51,10 +47,11 @@ export function LessonPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const queryClient = useQueryClient();
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [refModal, setRefModal] = useState<'glossary' | 'grammar' | null>(null);
   const [scenarioIdx, setScenarioIdx] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [wordBank, setWordBank] = useState<WordItem[]>(DEFAULT_WORD_BANK);
+  const [wordBank, setWordBank] = useState<WordItem[]>([]);
   const [lessonProgress, setLessonProgress] = useState(0);
   const [dialogueRecorded, setDialogueRecorded] = useState(false);
 
@@ -118,6 +115,12 @@ export function LessonPage() {
 
   const initSession = (idx = scenarioIdx) => {
     const firstChunk = (lesson?.vocabulary_chunks as Array<{ chunk: string }> | undefined)?.[0]?.chunk;
+    const langForLesson =
+      ((lesson?.unit as { course?: { target_language?: string } } | null)?.course?.target_language as
+        | 'en'
+        | 'es-ES'
+        | undefined) ?? 'en';
+    const ped = lesson ? getLessonPedagogy(lesson.title, langForLesson) : null;
     setMessages([
       {
         role: 'teacher',
@@ -128,7 +131,7 @@ export function LessonPage() {
         suggestions: firstChunk ? [firstChunk] : [],
       },
     ]);
-    setWordBank(DEFAULT_WORD_BANK);
+    setWordBank(ped?.quickWords ?? []);
     setLessonProgress(0);
     setDialogueRecorded(false);
     setErrorMsg(null);
@@ -192,10 +195,10 @@ export function LessonPage() {
   };
 
   const handleInsertWord = (word: string) => {
-    if (step === 2) {
+    if (step === 3) {
       setInput((prev) => (prev ? `${prev.trim()} ${word}` : word));
       chatInputRef.current?.focus();
-    } else if (step === 3) {
+    } else if (step === 4) {
       setExerciseAnswer((prev) => (prev ? `${prev.trim()} ${word}` : word));
     }
   };
@@ -277,11 +280,11 @@ export function LessonPage() {
       queryClient.invalidateQueries({ queryKey: ['mastery'] });
       queryClient.invalidateQueries({ queryKey: ['pedagogical-next'] });
     }
-    setStep(3);
+    setStep(4);
   };
 
   const exercisePrompt = lesson
-    ? `Sem usar frases prontas: combine os chunks de "${lesson.title}" com palavras do seu contexto profissional (1 a 3 frases em inglês).`
+    ? `Sem usar frases prontas: combine os chunks de "${lesson.title}" com palavras do seu contexto profissional (1 a 3 frases em ${targetLang === 'es-ES' ? 'espanhol' : 'inglês'}).`
     : '';
   const activePrompt = customPrompt?.question ?? exercisePrompt;
 
@@ -334,16 +337,20 @@ export function LessonPage() {
   }
 
   const chunks = (lesson.vocabulary_chunks as Array<{ chunk: string; pt: string }>) ?? [];
+  const pedagogy = getLessonPedagogy(lesson.title, targetLang);
+  const activeWordBank = wordBank.length > 0 ? wordBank : pedagogy.quickWords;
+  const fixationChallenges = buildFixationChallenges(chunks, pedagogy.quickWords);
 
   return (
     <div className="space-y-5">
-      {/* Stepper Pedagógico: Início -> Meio -> Fim */}
+      {/* Stepper Pedagógico: 4 Etapas */}
       <div className="rounded-2xl border border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-semibold">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs font-semibold">
           {[
-            { num: 1 as const, label: '1. Input & Chunks' },
-            { num: 2 as const, label: '2. Prática Guiada IA' },
-            { num: 3 as const, label: '3. Exercício Final' },
+            { num: 1 as const, label: '1. Input & Regras' },
+            { num: 2 as const, label: '2. Fixação (XP)' },
+            { num: 3 as const, label: '3. Prática Guiada IA' },
+            { num: 4 as const, label: '4. Exercício Final' },
           ].map((s) => (
             <button
               key={s.num}
@@ -368,7 +375,7 @@ export function LessonPage() {
             const next = (scenarioIdx + 1) % SCENARIOS.length;
             setScenarioIdx(next);
             initSession(next);
-            setStep(2);
+            setStep(3);
           }}
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-blue-500 transition"
         >
@@ -431,7 +438,7 @@ export function LessonPage() {
                 Clique na palavra para usar na sua frase ou no 🔊 para ouvir.
               </p>
               <div className="flex flex-wrap gap-2">
-                {wordBank.map((w) => (
+                {activeWordBank.map((w) => (
                   <div
                     key={w.en}
                     className="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs overflow-hidden"
@@ -455,6 +462,26 @@ export function LessonPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Botões de Consulta Rápida (qualquer etapa) */}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRefModal('glossary')}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-[#1F4E79]/60 bg-slate-50 dark:bg-[#06152B] px-3 py-2 text-xs font-semibold text-slate-700 dark:text-[#D4AF37] hover:border-[#D4AF37] transition"
+                >
+                  <BookMarked className="h-3.5 w-3.5" />
+                  Glossário Completo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRefModal('grammar')}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-[#1F4E79]/60 bg-slate-50 dark:bg-[#06152B] px-3 py-2 text-xs font-semibold text-slate-700 dark:text-[#D4AF37] hover:border-[#D4AF37] transition"
+                >
+                  <Lightbulb className="h-3.5 w-3.5" />
+                  Regras ({pedagogy.grammarRules.length})
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -462,21 +489,68 @@ export function LessonPage() {
         {/* Coluna Direita: Conteúdo por Etapa */}
         <div className="lg:col-span-7 flex flex-col rounded-2xl border border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] overflow-hidden h-[640px]">
           {step === 1 && (
-            <div className="flex-1 p-6 flex flex-col justify-between overflow-y-auto">
+            <div className="flex-1 p-6 flex flex-col justify-between overflow-y-auto space-y-5">
               <div className="space-y-4">
                 <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
-                  Etapa 1 de 3 • Preparação
+                  Etapa 1 de 4 • Input, Vocabulário & Regras
                 </span>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                   Como funciona esta lição
                 </h2>
                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  1. Ouça cada <strong>Chunk Estrutural</strong> ao lado clicando no 🔊 e repita em voz alta.
+                  1. Ouça cada <strong>Chunk Estrutural</strong> ao lado e repita em voz alta.
                   <br />
-                  2. Olhe o <strong>Banco de Vocabulário</strong> para lembrar palavras extras (como horários, pessoas e prazos) e montar suas próprias frases.
+                  2. Consulte o <strong>Glossário Completo</strong> e as <strong>Regras Práticas</strong> abaixo para entender os padrões.
                   <br />
-                  3. Na Etapa 2, você fará 4 a 5 trocas com a Teacher IA no cenário <strong>{SCENARIOS[scenarioIdx]}</strong> e depois seguirá para o Exercício Final.
+                  3. Na <strong>Etapa 2</strong>, faça o desafio rápido de <strong>Fixação (XP)</strong>; na <strong>Etapa 3</strong>, converse falando com a Teacher IA no cenário <strong>{SCENARIOS[scenarioIdx]}</strong>; e na <strong>Etapa 4</strong>, conclua o Exercício Final.
                 </p>
+
+                {/* Pílulas de Regras Gramaticais Práticas */}
+                <div className="space-y-2.5 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center gap-1.5">
+                      <Lightbulb className="h-3.5 w-3.5" />
+                      Regras Práticas desta Lição
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setRefModal('glossary')}
+                      className="text-xs font-semibold text-blue-500 hover:underline"
+                    >
+                      Abrir Glossário Completo →
+                    </button>
+                  </div>
+
+                  {pedagogy.grammarRules.map((rule) => (
+                    <div
+                      key={rule.title}
+                      className="rounded-xl border border-slate-200 dark:border-[#1F4E79]/50 bg-slate-50 dark:bg-[#06152B] p-3.5 space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">{rule.title}</p>
+                        <button
+                          type="button"
+                          onClick={() => handlePlay(rule.audioExample)}
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-[#D4AF37] hover:bg-[#D4AF37]/10 shrink-0"
+                        >
+                          <Volume2
+                            className={`h-3.5 w-3.5 ${playingText === rule.audioExample ? 'animate-pulse' : ''}`}
+                          />
+                          Ouvir
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{rule.explanation}</p>
+                      <div className="flex flex-wrap gap-2 text-[11px]">
+                        <span className="rounded-md bg-rose-500/10 px-2 py-1 text-rose-400">
+                          ❌ {rule.dontSay}
+                        </span>
+                        <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-emerald-400">
+                          ✅ {rule.sayInstead}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <button
@@ -484,20 +558,29 @@ export function LessonPage() {
                 onClick={() => setStep(2)}
                 className="w-full jvx-btn-primary flex items-center justify-center gap-2 py-3 text-sm"
               >
-                <Bot className="h-4 w-4" />
-                Iniciar Prática com Professor IA
+                <Trophy className="h-4 w-4" />
+                Iniciar Fixação Gamificada (XP)
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           )}
 
           {step === 2 && (
+            <FixationGameStage
+              challenges={fixationChallenges}
+              playingText={playingText}
+              onPlay={handlePlay}
+              onComplete={() => setStep(3)}
+            />
+          )}
+
+          {step === 3 && (
             <>
               <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Bot className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-semibold">Etapa 2 • Prática Guiada IA</span>
+                    <span className="text-sm font-semibold">Etapa 3 • Prática Guiada IA</span>
                   </div>
                   <span className="text-xs font-semibold text-blue-500">{lessonProgress}% concluído</span>
                 </div>
@@ -648,11 +731,11 @@ export function LessonPage() {
             </>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-600">
                 <ClipboardCheck className="h-4 w-4" />
-                Etapa 3 de 3 • {customPrompt ? 'Reforço Adaptado' : 'Exercício Final (Sem Dicas)'}
+                Etapa 4 de 4 • {customPrompt ? 'Reforço Adaptado' : 'Exercício Final (Sem Dicas)'}
               </div>
 
               <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4">
@@ -826,6 +909,16 @@ export function LessonPage() {
           )}
         </div>
       </div>
+
+      <LessonReferenceModal
+        mode={refModal}
+        lessonTitle={lesson.title}
+        glossary={pedagogy.glossary}
+        grammarRules={pedagogy.grammarRules}
+        playingText={playingText}
+        onPlay={handlePlay}
+        onClose={() => setRefModal(null)}
+      />
     </div>
   );
 }
