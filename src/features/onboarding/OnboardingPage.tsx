@@ -4,99 +4,24 @@ import { CheckCircle2, ArrowRight, Globe2, Target } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { normalizeUiLocale, useI18n, type UiLocale } from '@/lib/i18n';
+import {
+  getDiagnosticQuestions,
+  type FocusArea,
+  type TargetChoice,
+} from '@/features/onboarding/diagnosticQuestions';
 
 const COURSE_IDS = {
   en: '11111111-1111-1111-1111-111111111111',
   'es-ES': '22222222-2222-2222-2222-222222222222',
 } as const;
 
-interface DiagnosticQuestion {
-  id: string;
-  lang: 'en' | 'es-ES';
-  level: string;
-  question: string;
-  options: Array<{ label: string; correct: boolean }>;
-}
-
-const ENGLISH_QUESTIONS: DiagnosticQuestion[] = [
-  {
-    id: 'en-q1',
-    lang: 'en',
-    level: 'A1',
-    question: 'Como você se apresenta em inglês dizendo que é fundador de uma empresa?',
-    options: [
-      { label: 'I am the founder of my company.', correct: true },
-      { label: 'I have founder in my company.', correct: false },
-      { label: 'Me founder of company.', correct: false },
-    ],
-  },
-  {
-    id: 'en-q2',
-    lang: 'en',
-    level: 'A1',
-    question: 'Qual frase descreve corretamente uma rotina habitual de trabalho em inglês?',
-    options: [
-      { label: 'I usually start work at 8 a.m.', correct: true },
-      { label: 'I starting work at 8 a.m. usually.', correct: false },
-      { label: 'I am start work at 8 a.m.', correct: false },
-    ],
-  },
-  {
-    id: 'en-q3',
-    lang: 'en',
-    level: 'A2',
-    question: 'Como pedir educadamente que alguém envie um relatório até sexta-feira?',
-    options: [
-      { label: 'Could you send the report by Friday?', correct: true },
-      { label: 'You send report in Friday.', correct: false },
-      { label: 'Can you sending report until Friday?', correct: false },
-    ],
-  },
-];
-
-const SPANISH_QUESTIONS: DiagnosticQuestion[] = [
-  {
-    id: 'es-q1',
-    lang: 'es-ES',
-    level: 'A1',
-    question: 'Como você se apresenta no espanhol da Espanha dizendo sua profissão?',
-    options: [
-      { label: 'Soy fundador de una empresa de tecnología.', correct: true },
-      { label: 'Yo soy un fundador en empresa.', correct: false },
-      { label: 'Estoy fundador de una empresa.', correct: false },
-    ],
-  },
-  {
-    id: 'es-q2',
-    lang: 'es-ES',
-    level: 'A1',
-    question: 'Qual frase está natural no espanhol peninsular para falar da rotina pela manhã?',
-    options: [
-      { label: 'Por la mañana tengo reuniones con mi equipo.', correct: true },
-      { label: 'En la mañana yo tengo reunión en las nueve.', correct: false },
-      { label: 'De mañana estoy teniendo reuniones.', correct: false },
-    ],
-  },
-  {
-    id: 'es-q3',
-    lang: 'es-ES',
-    level: 'A2',
-    question: 'Como solicitar formalmente uma informação ou confirmação de reunião (Espanha)?',
-    options: [
-      { label: '¿Podría confirmarme la hora de la reunión, por favor?', correct: true },
-      { label: '¿Tú puedes confirmar para mí la hora ahora?', correct: false },
-      { label: 'Confirma usted la reunión en viernes.', correct: false },
-    ],
-  },
-];
-
-const FOCUS_OPTIONS = [
+const FOCUS_OPTIONS: Array<{ id: FocusArea; label: string }> = [
   { id: 'business_entrepreneur', label: 'Negócios & Empreendedorismo' },
   { id: 'travel', label: 'Viagens & Dia a Dia' },
   { id: 'study', label: 'Estudos & Acadêmico' },
   { id: 'tech', label: 'Tecnologia & Software' },
   { id: 'general', label: 'Comunicação Geral' },
-] as const;
+];
 
 export function OnboardingPage() {
   const { user, profile, refreshProfile } = useAuth();
@@ -107,22 +32,21 @@ export function OnboardingPage() {
   const [nativeLanguage, setNativeLanguage] = useState<UiLocale>(
     normalizeUiLocale(profile?.native_language || locale)
   );
-  const [targetChoice, setTargetChoice] = useState<'en' | 'es-ES' | 'both'>('en');
-  const [focusArea, setFocusArea] =
-    useState<(typeof FOCUS_OPTIONS)[number]['id']>('business_entrepreneur');
+  const [targetChoice, setTargetChoice] = useState<TargetChoice>('en');
+  const [focusArea, setFocusArea] = useState<FocusArea>('business_entrepreneur');
   const [dailyMinutes, setDailyMinutes] = useState(20);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
 
-  const activeQuestions: DiagnosticQuestion[] =
-    targetChoice === 'en'
-      ? ENGLISH_QUESTIONS
-      : targetChoice === 'es-ES'
-        ? SPANISH_QUESTIONS
-        : [ENGLISH_QUESTIONS[0], ENGLISH_QUESTIONS[2], SPANISH_QUESTIONS[0], SPANISH_QUESTIONS[2]];
+  const activeQuestions = getDiagnosticQuestions(targetChoice, focusArea);
 
-  const handleTargetChange = (choice: 'en' | 'es-ES' | 'both') => {
+  const handleTargetChange = (choice: TargetChoice) => {
     setTargetChoice(choice);
+    setAnswers({});
+  };
+
+  const handleFocusChange = (focus: FocusArea) => {
+    setFocusArea(focus);
     setAnswers({});
   };
 
@@ -298,7 +222,7 @@ export function OnboardingPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setFocusArea(item.id)}
+                  onClick={() => handleFocusChange(item.id)}
                   className={`rounded-xl border p-3 text-left text-xs font-semibold transition ${
                     focusArea === item.id
                       ? 'border-[#D4AF37] bg-[#D4AF37]/15 text-[#0B1F3B] dark:text-white'
