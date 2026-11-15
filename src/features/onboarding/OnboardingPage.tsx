@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, ArrowRight, Globe2, Target } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Globe2, LogOut, Target } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
-import { normalizeUiLocale, useI18n, type UiLocale } from '@/lib/i18n';
+import { LocaleSelector, normalizeUiLocale, useI18n, type UiLocale } from '@/lib/i18n';
 import {
   getDiagnosticQuestions,
   type FocusArea,
@@ -15,16 +15,135 @@ const COURSE_IDS = {
   'es-ES': '22222222-2222-2222-2222-222222222222',
 } as const;
 
-const FOCUS_OPTIONS: Array<{ id: FocusArea; label: string }> = [
-  { id: 'business_entrepreneur', label: 'Negócios & Empreendedorismo' },
-  { id: 'travel', label: 'Viagens & Dia a Dia' },
-  { id: 'study', label: 'Estudos & Acadêmico' },
-  { id: 'tech', label: 'Tecnologia & Software' },
-  { id: 'general', label: 'Comunicação Geral' },
+const ONBOARDING_TEXT: Record<
+  UiLocale,
+  {
+    title: string;
+    subtitle: string;
+    signOutBtn: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    dailyGoalLabel: string;
+    goal15: string;
+    goal20: string;
+    goal30: string;
+    whichLangLabel: string;
+    langEnTitle: string;
+    langEnSub: string;
+    langEsTitle: string;
+    langEsSub: string;
+    langBothTitle: string;
+    langBothSub: string;
+    focusLabel: string;
+    focusNames: Record<FocusArea, string>;
+    diagnosticTitle: string;
+    questionsWord: string;
+    savingBtn: string;
+    submitBtn: string;
+  }
+> = {
+  'pt-BR': {
+    title: 'Configuração & Diagnóstico Inicial',
+    subtitle: 'Calibre seu idioma, foco de estudo e nível inicial (CEFR / Cervantes).',
+    signOutBtn: 'Sair / Trocar conta',
+    nameLabel: 'Como prefere ser chamado(a)?',
+    namePlaceholder: 'Ex: João',
+    dailyGoalLabel: 'Meta diária de estudo',
+    goal15: '15 min/dia (Essencial)',
+    goal20: '20 min/dia (Recomendado)',
+    goal30: '30 min/dia (Acelerado)',
+    whichLangLabel: 'Qual idioma você quer estudar?',
+    langEnTitle: 'Inglês (CEFR)',
+    langEnSub: 'A1 ao C2 Internacional',
+    langEsTitle: 'Espanhol (Espanha)',
+    langEsSub: 'Modelo Instituto Cervantes',
+    langBothTitle: 'Os dois idiomas',
+    langBothSub: 'Inglês + Espanhol liberados',
+    focusLabel: 'Foco principal do aprendizado',
+    focusNames: {
+      business_entrepreneur: 'Negócios & Empreendedorismo',
+      travel: 'Viagens & Dia a Dia',
+      study: 'Estudos & Acadêmico',
+      tech: 'Tecnologia & Software',
+      general: 'Comunicação Geral',
+    },
+    diagnosticTitle: 'Diagnóstico Rápido',
+    questionsWord: 'questões',
+    savingBtn: 'Gerando seu plano...',
+    submitBtn: 'Concluir Diagnóstico e Entrar',
+  },
+  es: {
+    title: 'Configuración y Diagnóstico Inicial',
+    subtitle: 'Calibra tu idioma, enfoque de estudio y nivel inicial (CEFR / Cervantes).',
+    signOutBtn: 'Salir / Cambiar cuenta',
+    nameLabel: '¿Cómo prefieres que te llamemos?',
+    namePlaceholder: 'Ej: Carlos',
+    dailyGoalLabel: 'Meta diaria de estudio',
+    goal15: '15 min/día (Esencial)',
+    goal20: '20 min/día (Recomendado)',
+    goal30: '30 min/día (Acelerado)',
+    whichLangLabel: '¿Qué idioma quieres estudiar?',
+    langEnTitle: 'Inglés (CEFR)',
+    langEnSub: 'A1 a C2 Internacional',
+    langEsTitle: 'Español (España)',
+    langEsSub: 'Modelo Instituto Cervantes',
+    langBothTitle: 'Ambos idiomas',
+    langBothSub: 'Inglés + Español incluidos',
+    focusLabel: 'Enfoque principal de aprendizaje',
+    focusNames: {
+      business_entrepreneur: 'Negocios y Emprendimiento',
+      travel: 'Viajes y Día a Día',
+      study: 'Estudios y Académico',
+      tech: 'Tecnología y Software',
+      general: 'Comunicación General',
+    },
+    diagnosticTitle: 'Diagnóstico Rápido',
+    questionsWord: 'preguntas',
+    savingBtn: 'Generando tu plan...',
+    submitBtn: 'Completar Diagnóstico y Entrar',
+  },
+  en: {
+    title: 'Setup & Initial Assessment',
+    subtitle: 'Calibrate your target language, study focus, and starting level (CEFR / Cervantes).',
+    signOutBtn: 'Sign out / Switch account',
+    nameLabel: 'What should we call you?',
+    namePlaceholder: 'e.g. Alex',
+    dailyGoalLabel: 'Daily study goal',
+    goal15: '15 min/day (Essential)',
+    goal20: '20 min/day (Recommended)',
+    goal30: '30 min/day (Accelerated)',
+    whichLangLabel: 'Which language do you want to learn?',
+    langEnTitle: 'English (CEFR)',
+    langEnSub: 'International A1 to C2',
+    langEsTitle: 'Spanish (Spain)',
+    langEsSub: 'Instituto Cervantes Model',
+    langBothTitle: 'Both languages',
+    langBothSub: 'English + Spanish unlocked',
+    focusLabel: 'Main learning focus',
+    focusNames: {
+      business_entrepreneur: 'Business & Entrepreneurship',
+      travel: 'Travel & Everyday Life',
+      study: 'Studies & Academic',
+      tech: 'Technology & Software',
+      general: 'General Communication',
+    },
+    diagnosticTitle: 'Quick Assessment',
+    questionsWord: 'questions',
+    savingBtn: 'Building your plan...',
+    submitBtn: 'Finish Assessment & Start',
+  },
+};
+
+const FOCUS_IDS: FocusArea[] = [
+  'business_entrepreneur',
+  'travel',
+  'study',
+  'tech',
+  'general',
 ];
 
 export function OnboardingPage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut } = useAuth();
   const { locale, setLocale, t } = useI18n();
   const navigate = useNavigate();
 
@@ -38,6 +157,7 @@ export function OnboardingPage() {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
 
+  const ui = ONBOARDING_TEXT[locale];
   const activeQuestions = getDiagnosticQuestions(targetChoice, focusArea);
 
   const handleTargetChange = (choice: TargetChoice) => {
@@ -81,7 +201,7 @@ export function OnboardingPage() {
       await supabase
         .schema('core_identity')
         .from('student_preferences')
-        .update({ daily_minutes_goal: dailyMinutes, ui_locale: nativeLanguage })
+        .update({ daily_minutes_goal: dailyMinutes, ui_locale: locale })
         .eq('student_id', user.id);
 
       await supabase
@@ -117,19 +237,28 @@ export function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F6FA] dark:bg-[#06152B] py-10 px-4">
+    <div className="min-h-screen bg-[#F4F6FA] dark:bg-[#06152B] py-8 px-4">
       <div className="max-w-2xl mx-auto rounded-2xl border border-slate-200 dark:border-[#1F4E79]/50 bg-white dark:bg-[#0B1F3B] p-6 sm:p-8 shadow-xl">
+        {/* Top Bar: Idioma da Interface + Sair */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-slate-200 dark:border-[#1F4E79]/40">
+          <LocaleSelector compact />
+          <button
+            type="button"
+            onClick={signOut}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-[#1F4E79]/60 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#D4AF37] hover:text-[#D4AF37] transition"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            {ui.signOutBtn}
+          </button>
+        </div>
+
         <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-xl bg-[#D4AF37]/15 text-[#D4AF37] flex items-center justify-center">
+          <div className="h-10 w-10 rounded-xl bg-[#D4AF37]/15 text-[#D4AF37] flex items-center justify-center shrink-0">
             <Target className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[#0B1F3B] dark:text-white">
-              Configuração & Diagnóstico Inicial
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-300">
-              Calibre seu idioma, foco de estudo e nível inicial (CEFR / Cervantes).
-            </p>
+            <h1 className="text-xl font-bold text-[#0B1F3B] dark:text-white">{ui.title}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-300">{ui.subtitle}</p>
           </div>
         </div>
 
@@ -137,13 +266,13 @@ export function OnboardingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Como prefere ser chamado(a)?
+                {ui.nameLabel}
               </label>
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Ex: João"
+                placeholder={ui.namePlaceholder}
                 className="w-full rounded-lg border border-slate-300 dark:border-[#1F4E79] bg-white dark:bg-[#06152B] px-3 py-2 text-sm"
               />
             </div>
@@ -169,16 +298,16 @@ export function OnboardingPage() {
 
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Meta diária de estudo
+                {ui.dailyGoalLabel}
               </label>
               <select
                 value={dailyMinutes}
                 onChange={(e) => setDailyMinutes(Number(e.target.value))}
                 className="w-full rounded-lg border border-slate-300 dark:border-[#1F4E79] bg-white dark:bg-[#06152B] px-3 py-2 text-sm"
               >
-                <option value={15}>15 min/dia (Essencial)</option>
-                <option value={20}>20 min/dia (Recomendado)</option>
-                <option value={30}>30 min/dia (Acelerado)</option>
+                <option value={15}>{ui.goal15}</option>
+                <option value={20}>{ui.goal20}</option>
+                <option value={30}>{ui.goal30}</option>
               </select>
             </div>
           </div>
@@ -187,13 +316,13 @@ export function OnboardingPage() {
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-[#D4AF37] mb-2 flex items-center gap-1.5">
               <Globe2 className="h-3.5 w-3.5" />
-              Qual idioma você quer estudar?
+              {ui.whichLangLabel}
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {[
-                { id: 'en' as const, title: 'Inglês (CEFR)', sub: 'A1 ao C2 Internacional' },
-                { id: 'es-ES' as const, title: 'Espanhol (Espanha)', sub: 'Modelo Instituto Cervantes' },
-                { id: 'both' as const, title: 'Os dois idiomas', sub: 'Inglês + Espanhol liberados' },
+                { id: 'en' as const, title: ui.langEnTitle, sub: ui.langEnSub },
+                { id: 'es-ES' as const, title: ui.langEsTitle, sub: ui.langEsSub },
+                { id: 'both' as const, title: ui.langBothTitle, sub: ui.langBothSub },
               ].map((langOpt) => (
                 <button
                   key={langOpt.id}
@@ -215,21 +344,21 @@ export function OnboardingPage() {
           {/* Foco Principal (todas as 5 opções) */}
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-[#D4AF37] mb-2">
-              Foco principal do aprendizado
+              {ui.focusLabel}
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {FOCUS_OPTIONS.map((item) => (
+              {FOCUS_IDS.map((focusId) => (
                 <button
-                  key={item.id}
+                  key={focusId}
                   type="button"
-                  onClick={() => handleFocusChange(item.id)}
+                  onClick={() => handleFocusChange(focusId)}
                   className={`rounded-xl border p-3 text-left text-xs font-semibold transition ${
-                    focusArea === item.id
+                    focusArea === focusId
                       ? 'border-[#D4AF37] bg-[#D4AF37]/15 text-[#0B1F3B] dark:text-white'
                       : 'border-slate-200 dark:border-[#1F4E79]/40 hover:border-[#D4AF37]/50'
                   }`}
                 >
-                  {item.label}
+                  {ui.focusNames[focusId]}
                 </button>
               ))}
             </div>
@@ -238,7 +367,7 @@ export function OnboardingPage() {
           {/* Diagnóstico Rápido Adaptado */}
           <div className="border-t border-slate-200 dark:border-[#1F4E79]/40 pt-6">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-              Diagnóstico Rápido ({activeQuestions.length} questões)
+              {ui.diagnosticTitle} ({activeQuestions.length} {ui.questionsWord})
             </h2>
             <div className="space-y-4">
               {activeQuestions.map((q, qIdx) => (
@@ -248,11 +377,11 @@ export function OnboardingPage() {
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-[11px] font-bold uppercase text-[#D4AF37]">
-                      {q.lang === 'es-ES' ? 'Espanhol (Cervantes)' : 'Inglês (CEFR)'} • {q.level}
+                      {q.lang === 'es-ES' ? ui.langEsTitle : ui.langEnTitle} • {q.level}
                     </span>
                   </div>
                   <p className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-3">
-                    {qIdx + 1}. {q.question}
+                    {qIdx + 1}. {q.question[locale]}
                   </p>
                   <div className="space-y-2">
                     {q.options.map((opt, oIdx) => {
@@ -285,7 +414,7 @@ export function OnboardingPage() {
             onClick={handleComplete}
             className="w-full jvx-btn-primary flex items-center justify-center gap-2 disabled:opacity-50 py-3 text-sm"
           >
-            {saving ? 'Gerando seu plano...' : 'Concluir Diagnóstico e Entrar'}
+            {saving ? ui.savingBtn : ui.submitBtn}
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
