@@ -49,6 +49,7 @@ export function LoginPage() {
         email: values.email,
         password: values.password,
         options: {
+          emailRedirectTo: window.location.origin,
           data: {
             full_name: values.fullName || 'Aluno JVX SPEAK',
             native_language: nativeLanguage,
