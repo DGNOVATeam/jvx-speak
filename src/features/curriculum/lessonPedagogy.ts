@@ -33,7 +33,74 @@ export interface FixationChallenge {
   clozeSentence?: string;
 }
 
+function getNativeInterferenceRules(
+  targetLang: 'en' | 'es-ES',
+  nativeLang: 'pt-BR' | 'es' | 'en'
+): GrammarRule[] {
+  if (targetLang === 'en' && nativeLang === 'es') {
+    return [
+      {
+        title: 'Dica para Hispanofalantes: Sujeito obrigatório ("It is")',
+        explanation:
+          'En español puedes omitir el sujeto ("Es importante" / "Está lloviendo"), pero en inglés SIEMPRE debes incluir "It" antes del verbo.',
+        dontSay: 'Is very important. / Is raining.',
+        sayInstead: 'It is very important. / It is raining.',
+        audioExample: 'It is very important to start on time.',
+      },
+      {
+        title: 'Dica para Hispanofalantes: "I agree" e "People are"',
+        explanation:
+          'Evita traducir literal del español: en inglés "agree" es verbo (no lleva "am") y "people" siempre es plural ("are", no "is").',
+        dontSay: 'I am agree. / People is busy.',
+        sayInstead: 'I agree. / People are busy.',
+        audioExample: 'I agree with you, people are very busy today.',
+      },
+    ];
+  }
+
+  if (targetLang === 'es-ES' && nativeLang === 'pt-BR') {
+    return [
+      {
+        title: 'Alerta de Portunhol: Falsos Cognatos (Oficina / Exquisito)',
+        explanation:
+          'Para brasileiros: "oficina" em espanhol significa ESCRITÓRIO (não oficina mecânica), e "exquisito" significa DELICIOSO (não estranho).',
+        dontSay: 'Trabajo en un escritório. / La comida está deliciosa (estranha).',
+        sayInstead: 'Trabajo en una oficina. / La comida está exquisita.',
+        audioExample: 'Trabajo en una oficina en el centro de Madrid.',
+      },
+    ];
+  }
+
+  if (targetLang === 'es-ES' && nativeLang === 'en') {
+    return [
+      {
+        title: 'Tip for English Speakers: SER (identity) vs. ESTAR (state)',
+        explanation:
+          'Use SER for permanent traits, profession, and origin ("Soy fundador"), and ESTAR for location or temporary states ("Estoy en Madrid").',
+        dontSay: 'Estoy ingeniero. / Soy en la oficina.',
+        sayInstead: 'Soy ingeniero. / Estoy en la oficina.',
+        audioExample: 'Soy ingeniero y hoy estoy en la oficina.',
+      },
+    ];
+  }
+
+  return [];
+}
+
 export function getLessonPedagogy(
+  lessonTitle: string,
+  targetLang: 'en' | 'es-ES',
+  nativeLang: 'pt-BR' | 'es' | 'en' = 'pt-BR'
+): LessonPedagogy {
+  const base = getBaseLessonPedagogy(lessonTitle, targetLang);
+  const extraRules = getNativeInterferenceRules(targetLang, nativeLang);
+  return {
+    ...base,
+    grammarRules: [...extraRules, ...base.grammarRules],
+  };
+}
+
+function getBaseLessonPedagogy(
   lessonTitle: string,
   targetLang: 'en' | 'es-ES'
 ): LessonPedagogy {

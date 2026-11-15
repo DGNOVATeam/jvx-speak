@@ -19,6 +19,8 @@ import {
   Trophy,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/features/auth/AuthContext';
+import { normalizeUiLocale } from '@/lib/i18n';
 import { speakText, startSpeechRecognition, type SpeechRecognitionHandle } from '@/lib/speech';
 import {
   buildFixationChallenges,
@@ -45,6 +47,8 @@ const SCENARIOS = [
 
 export function LessonPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
+  const { profile } = useAuth();
+  const nativeLang = normalizeUiLocale(profile?.native_language);
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -120,7 +124,7 @@ export function LessonPage() {
         | 'en'
         | 'es-ES'
         | undefined) ?? 'en';
-    const ped = lesson ? getLessonPedagogy(lesson.title, langForLesson) : null;
+    const ped = lesson ? getLessonPedagogy(lesson.title, langForLesson, nativeLang) : null;
     setMessages([
       {
         role: 'teacher',
@@ -337,7 +341,7 @@ export function LessonPage() {
   }
 
   const chunks = (lesson.vocabulary_chunks as Array<{ chunk: string; pt: string }>) ?? [];
-  const pedagogy = getLessonPedagogy(lesson.title, targetLang);
+  const pedagogy = getLessonPedagogy(lesson.title, targetLang, nativeLang);
   const activeWordBank = wordBank.length > 0 ? wordBank : pedagogy.quickWords;
   const fixationChallenges = buildFixationChallenges(chunks, pedagogy.quickWords);
 

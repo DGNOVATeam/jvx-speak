@@ -10,6 +10,8 @@ import { LessonPage } from '@/features/curriculum/LessonPage';
 import { SkillsPage } from '@/features/skills/SkillsPage';
 import { SchedulePage } from '@/features/schedule/SchedulePage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { AdminPage } from '@/features/admin/AdminPage';
+import { I18nProvider } from '@/lib/i18n';
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,7 @@ function ProtectedRoutes() {
         <Route path="/skills" element={<SkillsPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>
@@ -55,11 +58,13 @@ function ProtectedRoutes() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <ProtectedRoutes />
-        </BrowserRouter>
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <ProtectedRoutes />
+          </BrowserRouter>
+        </AuthProvider>
+      </I18nProvider>
     </QueryClientProvider>
   );
 }

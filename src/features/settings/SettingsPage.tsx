@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Settings, CheckCircle2, Download, RotateCcw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
+import { normalizeUiLocale, useI18n, type UiLocale } from '@/lib/i18n';
 
 const FOCUS_OPTIONS = [
   { id: 'business_entrepreneur', label: 'Negócios & Empreendedorismo', desc: 'Reuniões, clientes, parceiros e gestão' },
@@ -15,10 +16,12 @@ const FOCUS_OPTIONS = [
 
 export function SettingsPage() {
   const { user, refreshProfile } = useAuth();
+  const { locale, setLocale, t } = useI18n();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const [activeCourseId, setActiveCourseId] = useState('11111111-1111-1111-1111-111111111111');
+  const [nativeLanguage, setNativeLanguage] = useState<UiLocale>(locale);
   const [focusArea, setFocusArea] = useState('business_entrepreneur');
   const [dailyMinutes, setDailyMinutes] = useState(20);
   const [saving, setSaving] = useState(false);
@@ -29,8 +32,8 @@ export function SettingsPage() {
     enabled: Boolean(user?.id),
     queryFn: async () => {
       const [{ data: profile }, { data: prefs }, { data: goal }, { data: courses }] = await Promise.all([
-        supabase.schema('core_identity').from('profiles').select('active_course_id').eq('id', user!.id).maybeSingle(),
-        supabase.schema('core_identity').from('student_preferences').select('daily_minutes_goal').eq('student_id', user!.id).maybeSingle(),
+        supabase.schema('core_identity').from('profiles').select('active_course_id, native_language').eq('id', user!.id).maybeSingle(),
+        supabase.schema('core_identity').from('student_preferences').select('daily_minutes_goal, ui_locale').eq('student_id', user!.id).maybeSingle(),
         supabase.schema('core_identity').from('learning_goals').select('focus_area').eq('student_id', user!.id).eq('is_active', true).maybeSingle(),
         supabase.schema('core_curriculum').from('courses').select('id, title, target_language').eq('is_published', true),
       ]);
@@ -40,6 +43,7 @@ export function SettingsPage() {
 
   useEffect(() => {
     if (data?.profile?.active_course_id) setActiveCourseId(data.profile.active_course_id);
+    if (data?.profile?.native_language) setNativeLanguage(normalizeUiLocale(data.profile.native_language));
     if (data?.goal?.focus_area) setFocusArea(data.goal.focus_area);
     if (data?.prefs?.daily_minutes_goal) setDailyMinutes(data.prefs.daily_minutes_goal);
   }, [data]);
@@ -50,8 +54,16 @@ export function SettingsPage() {
     setSavedMsg(null);
     try {
       await Promise.all([
-        supabase.schema('core_identity').from('profiles').update({ active_course_id: activeCourseId }).eq('id', user.id),
-        supabase.schema('core_identity').from('student_preferences').update({ daily_minutes_goal: dailyMinutes }).eq('student_id', user.id),
+        supabase
+          .schema('core_identity')
+          .from('profiles')
+          .update({ active_course_id: activeCourseId, native_language: nativeLanguage })
+          .eq('id', user.id),
+        supabase
+          .schema('core_identity')
+          .from('student_preferences')
+          .update({ daily_minutes_goal: dailyMinutes, ui_locale: locale })
+          .eq('student_id', user.id),
         supabase.schema('core_identity').from('learning_goals').update({ focus_area: focusArea }).eq('student_id', user.id).eq('is_active', true),
         supabase.schema('core_learning').from('enrollments').upsert(
           { student_id: user.id, course_id: activeCourseId, estimated_cefr_level: 'A1', status: 'active' },
@@ -120,6 +132,38 @@ export function SettingsPage() {
                 </p>
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#D4AF37] mb-2">
+              {t('native_lang_label')}
+            </label>
+            <select
+              value={nativeLanguage}
+              onChange={(e) => setNativeLanguage(e.target.value as UiLocale)}
+              className="w-full rounded-xl border border-slate-200 dark:border-[#1F4E79]/60 bg-slate-50 dark:bg-[#06152B] px-3.5 py-2.5 text-sm"
+            >
+              <option value="pt-BR">Português (Brasil)</option>
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+            <p className="mt-1 text-[11px] text-slate-400">{t('native_lang_hint')}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#D4AF37] mb-2">
+              {t('ui_lang_label')}
+            </label>
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as UiLocale)}
+              className="w-full rounded-xl border border-slate-200 dark:border-[#1F4E79]/60 bg-slate-50 dark:bg-[#06152B] px-3.5 py-2.5 text-sm"
+            >
+              <option value="pt-BR">Português (Brasil)</option>
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
           </div>
         </div>
 

@@ -1,19 +1,21 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LogOut, Moon, Sun } from 'lucide-react';
+import { LogOut, Moon, Shield, Sun } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { InstallAppPrompt } from '@/components/pwa/InstallAppPrompt';
+import { LocaleSelector, useI18n } from '@/lib/i18n';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Início', iconName: 'home' },
-  { to: '/courses', label: 'Cursos', iconName: 'courses' },
-  { to: '/skills', label: 'Progresso CEFR', iconName: 'progress' },
-  { to: '/schedule', label: 'Agenda SRS', iconName: 'calendar' },
-  { to: '/settings', label: 'Meu Plano', iconName: 'settings' },
+  { to: '/', labelKey: 'nav_home', iconName: 'home' },
+  { to: '/courses', labelKey: 'nav_courses', iconName: 'courses' },
+  { to: '/skills', labelKey: 'nav_skills', iconName: 'progress' },
+  { to: '/schedule', labelKey: 'nav_schedule', iconName: 'calendar' },
+  { to: '/settings', labelKey: 'nav_settings', iconName: 'settings' },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { profile, signOut } = useAuth();
+  const { t } = useI18n();
   const [dark, setDark] = useState(true);
 
   useEffect(() => {
@@ -59,19 +61,31 @@ export function AppShell({ children }: { children: ReactNode }) {
                     alt=""
                     className="h-4 w-4 shrink-0"
                   />
-                  <span>{item.label}</span>
+                  <span>{t(item.labelKey)}</span>
                 </>
               )}
             </NavLink>
           ))}
+          {profile?.role === 'admin' && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${
+                  isActive
+                    ? 'bg-[#D4AF37] text-[#0B1F3B] shadow-sm'
+                    : 'text-[#D4AF37] hover:bg-[#F4F6FA] dark:hover:bg-[#1F4E79]/40'
+                }`
+              }
+            >
+              <Shield className="h-4 w-4 shrink-0" />
+              <span>{t('nav_admin')}</span>
+            </NavLink>
+          )}
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-[#1F4E79]/40 space-y-3">
-          <InstallAppPrompt variant="sidebar" />
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-300 truncate">
-              {profile?.full_name || 'Aluno'}
-            </span>
+          <div className="flex items-center justify-between gap-2">
+            <LocaleSelector compact />
             <button
               type="button"
               onClick={() => setDark((d) => !d)}
@@ -82,13 +96,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
           </div>
+          <InstallAppPrompt variant="sidebar" />
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-300 truncate">
+              {profile?.full_name || t('student_default')}
+            </span>
+          </div>
           <button
             type="button"
             onClick={signOut}
             className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F4E79]/40"
           >
             <LogOut className="h-4 w-4" />
-            Sair
+            {t('nav_signout')}
           </button>
         </div>
       </aside>
@@ -106,6 +126,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="h-8 w-auto"
           />
           <div className="flex items-center gap-2">
+            <LocaleSelector compact />
             <InstallAppPrompt variant="header" />
             <button
               type="button"
@@ -143,11 +164,24 @@ export function AppShell({ children }: { children: ReactNode }) {
                   alt=""
                   className="h-4 w-4"
                 />
-                <span>{item.label}</span>
+                <span>{t(item.labelKey)}</span>
               </>
             )}
           </NavLink>
         ))}
+        {profile?.role === 'admin' && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 text-[11px] font-semibold ${
+                isActive ? 'text-[#D4AF37]' : 'text-slate-500 dark:text-slate-300'
+              }`
+            }
+          >
+            <Shield className="h-4 w-4" />
+            <span>Admin</span>
+          </NavLink>
+        )}
       </nav>
     </div>
   );
