@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Bot, BookOpen, CheckCircle2, Clock, Sparkles, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Clock, Sparkles, ArrowRight, BookOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 
@@ -102,9 +102,9 @@ export function DashboardPage() {
         {recommendedLesson && (
           <Link
             to={`/lessons/${recommendedLesson.id}`}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition"
+            className="jvx-btn-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm shadow-sm"
           >
-            <Bot className="h-4 w-4" />
+            <img src="/JVX_SPEAK_Brand_Kit/icons/ai-tutor-navy.svg" alt="" className="h-4 w-4" />
             Abrir Professor IA
           </Link>
         )}
@@ -112,47 +112,47 @@ export function DashboardPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Nível Estimado (Interno)</span>
+        <div className="rounded-xl border border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] p-5">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-300">Nível Estimado (Interno)</span>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-blue-600">
+            <span className="text-3xl font-bold text-[#D4AF37]">
               {enrollment?.estimated_cefr_level ?? 'A1'}
             </span>
-            <span className="text-xs text-slate-500">Trilha Negócios & Fundação</span>
+            <span className="text-xs text-slate-500 dark:text-slate-300">Trilha Negócios & Fundação</span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Competências Dominadas</span>
+        <div className="rounded-xl border border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] p-5">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-300">Competências Dominadas</span>
           <div className="mt-2 flex items-center gap-2">
             <span className="text-3xl font-bold text-emerald-500">{masteredCount}</span>
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Revisões Pendentes (SRS)</span>
+        <div className="rounded-xl border border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] p-5">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-300">Revisões Pendentes (SRS)</span>
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-3xl font-bold text-slate-900 dark:text-white">{reviews?.length ?? 0}</span>
-            <Clock className="h-5 w-5 text-amber-500" />
+            <span className="text-3xl font-bold text-[#0B1F3B] dark:text-white">{reviews?.length ?? 0}</span>
+            <Clock className="h-5 w-5 text-[#D4AF37]" />
           </div>
         </div>
       </div>
 
       {/* Próxima Decisão do PedagogicalEngine */}
-      <div className="rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/30 p-6">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-400 mb-2">
+      <div className="rounded-2xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 dark:bg-[#0B1F3B] p-6">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#B68D1F] dark:text-[#D4AF37] mb-2">
           <Sparkles className="h-4 w-4" />
           Recomendação do Motor Pedagógico
         </div>
-        <p className="text-sm text-slate-800 dark:text-slate-200 mb-4">
+        <p className="text-sm text-[#0B1F3B] dark:text-slate-200 mb-4">
           {nextDecision?.reason ||
             'Comece pela primeira unidade A1 para registrar suas primeiras evidências de aprendizagem.'}
         </p>
         {recommendedLesson && (
           <Link
             to={`/lessons/${recommendedLesson.id}`}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#1F4E79] dark:text-[#D4AF37] hover:underline"
           >
             Ir para a próxima aula: {recommendedLesson.title}
             <ArrowRight className="h-4 w-4" />

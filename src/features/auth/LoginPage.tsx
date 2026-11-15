@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { GraduationCap, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const authSchema = z.object({
@@ -46,7 +46,7 @@ export function LoginPage() {
         email: values.email,
         password: values.password,
         options: {
-          data: { full_name: values.fullName || 'Aluno jvxspeak' },
+          data: { full_name: values.fullName || 'Aluno JVX SPEAK' },
         },
       });
       if (error) {
@@ -58,16 +58,17 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/30">
-            <GraduationCap className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">jvxspeak</h1>
-            <p className="text-xs text-slate-400">AI Language School • Padrão CEFR</p>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-[#06152B] px-4 py-12">
+      <div className="w-full max-w-md rounded-2xl border border-[#1F4E79]/60 bg-[#0B1F3B] p-8 shadow-2xl">
+        <div className="flex flex-col items-start gap-2 mb-6">
+          <img
+            src="/JVX_SPEAK_Brand_Kit/logos/horizontal-dark.svg"
+            alt="JVX SPEAK — AI Language Academy"
+            className="h-12 w-auto"
+          />
+          <p className="text-xs font-medium tracking-wider uppercase text-[#D4AF37]">
+            AI Language Academy • Learn. Speak. Evolve.
+          </p>
         </div>
 
         {!isSupabaseConfigured && (
@@ -80,12 +81,12 @@ export function LoginPage() {
           </div>
         )}
 
-        <div className="flex rounded-lg bg-slate-800/80 p-1 mb-6">
+        <div className="flex rounded-xl bg-[#06152B] p-1 mb-6 border border-[#1F4E79]/40">
           <button
             type="button"
             onClick={() => setMode('login')}
-            className={`flex-1 rounded-md py-2 text-sm font-medium transition ${
-              mode === 'login' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
+              mode === 'login' ? 'bg-[#D4AF37] text-[#0B1F3B] shadow' : 'text-slate-300 hover:text-white'
             }`}
           >
             Entrar
@@ -93,8 +94,8 @@ export function LoginPage() {
           <button
             type="button"
             onClick={() => setMode('signup')}
-            className={`flex-1 rounded-md py-2 text-sm font-medium transition ${
-              mode === 'signup' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
+              mode === 'signup' ? 'bg-[#D4AF37] text-[#0B1F3B] shadow' : 'text-slate-300 hover:text-white'
             }`}
           >
             Criar conta
@@ -104,34 +105,34 @@ export function LoginPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {mode === 'signup' && (
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Nome completo</label>
+              <label className="block text-xs font-medium text-slate-200 mb-1.5">Nome completo</label>
               <input
                 type="text"
                 placeholder="Seu nome"
                 {...register('fullName')}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-[#1F4E79] bg-[#06152B] px-3.5 py-2.5 text-sm text-white placeholder-slate-400 focus:border-[#D4AF37] focus:outline-none"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">E-mail</label>
+            <label className="block text-xs font-medium text-slate-200 mb-1.5">E-mail</label>
             <input
               type="email"
               placeholder="voce@empresa.com"
               {...register('email')}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-[#1F4E79] bg-[#06152B] px-3.5 py-2.5 text-sm text-white placeholder-slate-400 focus:border-[#D4AF37] focus:outline-none"
             />
             {errors.email && <p className="mt-1 text-xs text-rose-400">{errors.email.message}</p>}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Senha</label>
+            <label className="block text-xs font-medium text-slate-200 mb-1.5">Senha</label>
             <input
               type="password"
               placeholder="••••••••"
               {...register('password')}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-[#1F4E79] bg-[#06152B] px-3.5 py-2.5 text-sm text-white placeholder-slate-400 focus:border-[#D4AF37] focus:outline-none"
             />
             {errors.password && <p className="mt-1 text-xs text-rose-400">{errors.password.message}</p>}
           </div>
@@ -153,9 +154,9 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2.5 text-sm font-semibold text-white transition shadow-lg shadow-blue-600/20"
+            className="w-full jvx-btn-primary disabled:opacity-50 py-2.5 text-sm shadow-lg shadow-[#D4AF37]/15"
           >
-            {isSubmitting ? 'Processando...' : mode === 'login' ? 'Acessar Escola' : 'Criar minha conta'}
+            {isSubmitting ? 'Processando...' : mode === 'login' ? 'Acessar Academia' : 'Criar minha conta'}
           </button>
         </form>
       </div>

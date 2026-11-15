@@ -1,0 +1,8 @@
+JVX SPEAK — PACOTE DE IDENTIDADE VISUAL
+
+1. Descompacte a pasta e copie para o projeto Antigravity.
+2. Cole o conteúdo de docs/PROMPT_ANTIGRAVITY.md no Antigravity.
+3. Logos e ícones são SVGs transparentes + PNGs correspondentes. Os app-icon possuem fundo navy intencionalmente.
+4. Botões são referências; devem ser implementados como componentes reais.
+5. Cores são do conceito aprovado, não certificadas como manual oficial da JVX.
+6. SVG usa fontes Montserrat/Arial; no app instale Montserrat e Inter para manter tipografia.

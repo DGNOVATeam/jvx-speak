@@ -298,8 +298,8 @@ export function LessonPage() {
   return (
     <div className="space-y-5">
       {/* Stepper Pedagógico: Início -> Meio -> Fim */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-2 sm:gap-4 text-xs font-semibold">
+      <div className="rounded-2xl border border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-semibold">
           {[
             { num: 1 as const, label: '1. Input & Chunks' },
             { num: 2 as const, label: '2. Prática Guiada IA' },
@@ -311,10 +311,10 @@ export function LessonPage() {
               onClick={() => setStep(s.num)}
               className={`rounded-lg px-3 py-1.5 transition ${
                 step === s.num
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-[#D4AF37] text-[#0B1F3B] shadow-sm'
                   : step > s.num
                   ? 'bg-emerald-500/15 text-emerald-500'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                  : 'bg-slate-100 dark:bg-[#06152B] text-slate-500 dark:text-slate-300'
               }`}
             >
               {s.label}
@@ -420,7 +420,7 @@ export function LessonPage() {
         </div>
 
         {/* Coluna Direita: Conteúdo por Etapa */}
-        <div className="lg:col-span-7 flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden h-[640px]">
+        <div className="lg:col-span-7 flex flex-col rounded-2xl border border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] overflow-hidden h-[640px]">
           {step === 1 && (
             <div className="flex-1 p-6 flex flex-col justify-between overflow-y-auto">
               <div className="space-y-4">
@@ -442,7 +442,7 @@ export function LessonPage() {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 py-3 text-sm font-semibold text-white transition"
+                className="w-full jvx-btn-primary flex items-center justify-center gap-2 py-3 text-sm"
               >
                 <Bot className="h-4 w-4" />
                 Iniciar Prática com Professor IA
@@ -632,7 +632,7 @@ export function LessonPage() {
                 type="button"
                 disabled={evalLoading || !exerciseAnswer.trim()}
                 onClick={handleEvaluateExercise}
-                className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-2.5 text-sm font-semibold text-white transition"
+                className="w-full jvx-btn-primary disabled:opacity-50 py-2.5 text-sm"
               >
                 {evalLoading ? 'Avaliando resposta...' : 'Enviar para Avaliação & Atualizar Domínio'}
               </button>

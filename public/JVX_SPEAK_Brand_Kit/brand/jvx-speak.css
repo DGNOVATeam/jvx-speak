@@ -1,0 +1,5 @@
+/* JVX SPEAK - design tokens */
+:root {--jvx-navy:#0B1F3B;--jvx-gold:#D4AF37;--jvx-white:#FFFFFF;--jvx-surface:#F4F6FA;--jvx-blue:#1F4E79;--jvx-deep:#06152B;}
+.jvx-btn-primary{background:var(--jvx-gold);color:var(--jvx-navy);border:1px solid var(--jvx-gold);border-radius:999px;font-weight:700;padding:12px 24px;min-height:44px;cursor:pointer;}
+.jvx-btn-secondary{background:transparent;color:var(--jvx-gold);border:1px solid var(--jvx-gold);border-radius:999px;font-weight:700;padding:12px 24px;min-height:44px;cursor:pointer;}
+.jvx-btn-primary:focus-visible,.jvx-btn-secondary:focus-visible{outline:3px solid #fff;outline-offset:3px;}

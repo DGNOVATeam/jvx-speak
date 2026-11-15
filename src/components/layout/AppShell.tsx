@@ -1,23 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  BookOpen,
-  Bot,
-  BarChart3,
-  Calendar,
-  LogOut,
-  Moon,
-  Sun,
-  GraduationCap,
-} from 'lucide-react';
+import { LogOut, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/courses', label: 'Cursos', icon: BookOpen },
-  { to: '/skills', label: 'Competências', icon: BarChart3 },
-  { to: '/schedule', label: 'Agenda SRS', icon: Calendar },
+  { to: '/', label: 'Início', iconName: 'home' },
+  { to: '/courses', label: 'Cursos', iconName: 'courses' },
+  { to: '/skills', label: 'Progresso CEFR', iconName: 'progress' },
+  { to: '/schedule', label: 'Agenda SRS', iconName: 'calendar' },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -29,52 +19,62 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [dark]);
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen flex bg-[#F4F6FA] dark:bg-[#06152B] text-[#0B1F3B] dark:text-white">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-900 text-white">
-            <GraduationCap className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="font-bold text-base tracking-tight block">jvxspeak</span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">CEFR AI School</span>
-          </div>
+      <aside className="hidden md:flex md:w-64 md:flex-col border-r border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B]">
+        <div className="px-5 py-4 border-b border-slate-200 dark:border-[#1F4E79]/40">
+          <img
+            src={
+              dark
+                ? '/JVX_SPEAK_Brand_Kit/logos/horizontal-dark.svg'
+                : '/JVX_SPEAK_Brand_Kit/logos/horizontal-light.svg'
+            }
+            alt="JVX SPEAK"
+            className="h-10 w-auto"
+          />
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`
-                }
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </NavLink>
-            );
-          })}
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/'}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${
+                  isActive
+                    ? 'bg-[#D4AF37] text-[#0B1F3B] shadow-sm'
+                    : 'text-[#0B1F3B]/80 dark:text-slate-200 hover:bg-[#F4F6FA] dark:hover:bg-[#1F4E79]/40'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <img
+                    src={`/JVX_SPEAK_Brand_Kit/icons/${item.iconName}-${
+                      isActive ? 'navy' : dark ? 'gold' : 'navy'
+                    }.svg`}
+                    alt=""
+                    className="h-4 w-4 shrink-0"
+                  />
+                  <span>{item.label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+        <div className="p-4 border-t border-slate-200 dark:border-[#1F4E79]/40 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-300 truncate">
               {profile?.full_name || 'Aluno'}
             </span>
             <button
               type="button"
               onClick={() => setDark((d) => !d)}
-              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#1F4E79]/50 text-[#D4AF37]"
               title="Alternar tema"
+              aria-label="Alternar tema claro e escuro"
             >
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
@@ -82,7 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={signOut}
-            className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F4E79]/40"
           >
             <LogOut className="h-4 w-4" />
             Sair
@@ -92,15 +92,21 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col pb-16 md:pb-0">
-        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-blue-600" />
-            <span className="font-bold text-sm">jvxspeak</span>
-          </div>
+        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B]">
+          <img
+            src={
+              dark
+                ? '/JVX_SPEAK_Brand_Kit/logos/horizontal-dark.svg'
+                : '/JVX_SPEAK_Brand_Kit/logos/horizontal-light.svg'
+            }
+            alt="JVX SPEAK"
+            className="h-8 w-auto"
+          />
           <button
             type="button"
             onClick={() => setDark((d) => !d)}
-            className="p-1.5 rounded-lg text-slate-500"
+            className="p-1.5 rounded-lg text-[#D4AF37]"
+            aria-label="Alternar tema claro e escuro"
           >
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
@@ -110,25 +116,32 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-around py-2 z-40">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                `flex flex-col items-center gap-1 text-[11px] font-medium ${
-                  isActive ? 'text-blue-600' : 'text-slate-500 dark:text-slate-400'
-                }`
-              }
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </NavLink>
-          );
-        })}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 border-t border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] flex justify-around py-2 z-40">
+        {NAV_ITEMS.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/'}
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 text-[11px] font-semibold ${
+                isActive ? 'text-[#D4AF37]' : 'text-slate-500 dark:text-slate-300'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <img
+                  src={`/JVX_SPEAK_Brand_Kit/icons/${item.iconName}-${
+                    isActive ? 'gold' : dark ? 'white' : 'navy'
+                  }.svg`}
+                  alt=""
+                  className="h-4 w-4"
+                />
+                <span>{item.label}</span>
+              </>
+            )}
+          </NavLink>
+        ))}
       </nav>
     </div>
   );

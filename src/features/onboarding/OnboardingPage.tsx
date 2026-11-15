@@ -217,7 +217,7 @@ export function OnboardingPage() {
             type="button"
             disabled={saving || Object.keys(answers).length < DIAGNOSTIC_QUESTIONS.length}
             onClick={handleComplete}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 py-3 text-sm font-semibold text-white transition"
+            className="w-full jvx-btn-primary flex items-center justify-center gap-2 disabled:opacity-50 py-3 text-sm"
           >
             {saving ? 'Gerando seu plano...' : 'Concluir Diagnóstico e Entrar'}
             <ArrowRight className="h-4 w-4" />

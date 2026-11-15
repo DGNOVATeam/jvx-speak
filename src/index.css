@@ -2,8 +2,52 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --jvx-navy: #0B1F3B;
+  --jvx-gold: #D4AF37;
+  --jvx-white: #FFFFFF;
+  --jvx-surface: #F4F6FA;
+  --jvx-blue: #1F4E79;
+  --jvx-deep: #06152B;
+}
+
 @layer base {
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--jvx-gold);
+    outline-offset: 2px;
+  }
+}
+
+.jvx-btn-primary {
+  background: var(--jvx-gold);
+  color: var(--jvx-navy);
+  border: 1px solid var(--jvx-gold);
+  border-radius: 0.75rem;
+  font-weight: 700;
+  transition: filter 150ms ease, transform 150ms ease;
+}
+
+.jvx-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.jvx-btn-secondary {
+  background: transparent;
+  color: var(--jvx-gold);
+  border: 1px solid var(--jvx-gold);
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: background-color 150ms ease;
+}
+
+.jvx-btn-secondary:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.12);
 }
