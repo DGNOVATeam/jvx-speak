@@ -10,17 +10,31 @@ import {
   Volume2,
   ClipboardCheck,
   ArrowRight,
-  RefreshCw,
   Blocks,
   Mic,
   MicOff,
   BookMarked,
   Lightbulb,
   Trophy,
+  Headphones,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { normalizeUiLocale } from '@/lib/i18n';
+import { resolveLessonMedia } from '@/lib/pedagogicalMedia';
+import {
+  ContentCard,
+  PageContainer,
+  PrimaryButton,
+  SecondaryButton,
+} from '@/components/ui';
+import {
+  AudioPhraseCard,
+  GrammarCard,
+  LessonHero,
+  LessonStepper,
+  VocabularyPanel,
+} from '@/components/pedagogy';
 import { speakText, startSpeechRecognition, type SpeechRecognitionHandle } from '@/lib/speech';
 import {
   buildFixationChallenges,
@@ -344,230 +358,209 @@ export function LessonPage() {
   const pedagogy = getLessonPedagogy(lesson.title, targetLang, nativeLang);
   const activeWordBank = wordBank.length > 0 ? wordBank : pedagogy.quickWords;
   const fixationChallenges = buildFixationChallenges(chunks, pedagogy.quickWords);
+  const media = resolveLessonMedia(lesson.title);
+  const cefrLevel = (lesson.unit as { cefr_level?: string })?.cefr_level ?? 'A1';
+  const unitTitle = (lesson.unit as { title?: string })?.title;
+  const lessonObjective =
+    (lesson as { objective_pt?: string; description?: string }).objective_pt ??
+    (lesson as { description?: string }).description ??
+    `Dominar os chunks de "${lesson.title}" com áudio, fixação e prática guiada no cenário ${SCENARIOS[scenarioIdx]}.`;
 
   return (
-    <div className="space-y-5">
+    <PageContainer>
+      {/* Cabeçalho Contextual da Lição (JVX SPEAK 2.0) */}
+      <LessonHero
+        title={lesson.title}
+        unitTitle={unitTitle}
+        cefrLevel={cefrLevel}
+        targetLanguage={targetLang}
+        media={media}
+        estimatedMinutes={(lesson as { estimated_minutes?: number }).estimated_minutes}
+        objective={lessonObjective}
+        progressPct={lessonProgress > 0 ? lessonProgress : null}
+        progressLabel="Progresso nesta sessão"
+      />
+
       {/* Stepper Pedagógico: 4 Etapas */}
-      <div className="rounded-2xl border border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs font-semibold">
-          {[
-            { num: 1 as const, label: '1. Input & Regras' },
-            { num: 2 as const, label: '2. Fixação (XP)' },
-            { num: 3 as const, label: '3. Prática Guiada IA' },
-            { num: 4 as const, label: '4. Exercício Final' },
-          ].map((s) => (
-            <button
-              key={s.num}
-              type="button"
-              onClick={() => setStep(s.num)}
-              className={`rounded-lg px-3 py-1.5 transition ${
-                step === s.num
-                  ? 'bg-[#D4AF37] text-[#0B1F3B] shadow-sm'
-                  : step > s.num
-                  ? 'bg-emerald-500/15 text-emerald-500'
-                  : 'bg-slate-100 dark:bg-[#06152B] text-slate-500 dark:text-slate-300'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+      <LessonStepper
+        steps={[
+          { step: 1, label: 'Input & Vocabulário' },
+          { step: 2, label: 'Fixação (XP)' },
+          { step: 3, label: 'Prática Guiada IA' },
+          { step: 4, label: 'Exercício Final' },
+        ]}
+        currentStep={step}
+        onSelectStep={(nextStep) => setStep(nextStep)}
+        scenarioLabel={SCENARIOS[scenarioIdx]}
+        onChangeScenario={() => {
+          const next = (scenarioIdx + 1) % SCENARIOS.length;
+          setScenarioIdx(next);
+          initSession(next);
+          setStep(3);
+        }}
+      />
 
-        <button
-          type="button"
-          onClick={() => {
-            const next = (scenarioIdx + 1) % SCENARIOS.length;
-            setScenarioIdx(next);
-            initSession(next);
-            setStep(3);
-          }}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-blue-500 transition"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Novo Cenário ({SCENARIOS[scenarioIdx]})
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Coluna Esquerda: Chunks + Banco de Vocabulário ("Peças de Montar") */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-            <span className="inline-block rounded-md bg-blue-600/10 px-2.5 py-1 text-xs font-semibold text-blue-600 mb-2">
-              {(lesson.unit as { cefr_level?: string })?.cefr_level ?? 'A1'}
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{lesson.title}</h1>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {(lesson.unit as { title?: string })?.title}
-            </p>
-
-            <div className="mt-5">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2.5 flex items-center gap-1.5">
-                <BookOpen className="h-3.5 w-3.5" />
-                Chunks Estruturais (Ouça e repita)
-              </h2>
-              <div className="space-y-2">
-                {chunks.map((c) => (
-                  <div
-                    key={c.chunk}
-                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 flex items-start justify-between gap-2"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">{c.chunk}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{c.pt}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handlePlay(c.chunk)}
-                      title="Ouvir pronúncia neural (Gemini TTS)"
-                      className={`p-1.5 rounded-lg transition shrink-0 ${
-                        playingText === c.chunk
-                          ? 'text-blue-500 bg-blue-500/15 animate-pulse'
-                          : 'text-slate-400 hover:text-blue-500 hover:bg-blue-500/10'
-                      }`}
-                    >
-                      <Volume2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Banco de Vocabulário / Peças de Montar */}
-            <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1.5">
-                <Blocks className="h-3.5 w-3.5 text-blue-500" />
-                Banco de Vocabulário (Peças de Montar)
-              </h2>
-              <p className="text-[11px] text-slate-400 mb-2.5">
-                Clique na palavra para usar na sua frase ou no 🔊 para ouvir.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {activeWordBank.map((w) => (
-                  <div
-                    key={w.en}
-                    className="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs overflow-hidden"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleInsertWord(w.en)}
-                      title={`Significado: ${w.pt} (clique para inserir)`}
-                      className="px-2.5 py-1.5 text-left hover:bg-blue-600/10 transition"
-                    >
-                      <span className="font-semibold text-slate-900 dark:text-white">{w.en}</span>
-                      <span className="text-[10px] text-slate-400 ml-1.5">({w.pt})</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handlePlay(w.en)}
-                      className="px-2 py-1.5 border-l border-slate-200 dark:border-slate-800 text-slate-400 hover:text-blue-500"
-                    >
-                      <Volume2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Botões de Consulta Rápida (qualquer etapa) */}
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setRefModal('glossary')}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-[#1F4E79]/60 bg-slate-50 dark:bg-[#06152B] px-3 py-2 text-xs font-semibold text-slate-700 dark:text-[#D4AF37] hover:border-[#D4AF37] transition"
-                >
-                  <BookMarked className="h-3.5 w-3.5" />
-                  Glossário Completo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRefModal('grammar')}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-[#1F4E79]/60 bg-slate-50 dark:bg-[#06152B] px-3 py-2 text-xs font-semibold text-slate-700 dark:text-[#D4AF37] hover:border-[#D4AF37] transition"
-                >
-                  <Lightbulb className="h-3.5 w-3.5" />
-                  Regras ({pedagogy.grammarRules.length})
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Coluna Direita: Conteúdo por Etapa */}
-        <div className="lg:col-span-7 flex flex-col rounded-2xl border border-slate-200 dark:border-[#1F4E79]/40 bg-white dark:bg-[#0B1F3B] overflow-hidden h-[640px]">
-          {step === 1 && (
-            <div className="flex-1 p-6 flex flex-col justify-between overflow-y-auto space-y-5">
-              <div className="space-y-4">
-                <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
-                  Etapa 1 de 4 • Input, Vocabulário & Regras
-                </span>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                  Como funciona esta lição
+      {step === 1 ? (
+        /* ETAPA 1 — REDESENHO JVX SPEAK 2.0 (Desktop 2 colunas / Mobile coluna única) */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+          {/* Coluna Principal: Chunks Estruturais + Vocabulário */}
+          <div className="lg:col-span-7 space-y-5">
+            <ContentCard variant="default" padding="md" className="space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="jvx-heading text-sm sm:text-base font-bold text-[#0B1F3B] dark:text-[var(--jvx-text-primary)] flex items-center gap-2">
+                  <Headphones className="h-4 w-4 text-[var(--jvx-gold)]" aria-hidden="true" />
+                  Chunks Estruturais (Ouça e repita)
                 </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  1. Ouça cada <strong>Chunk Estrutural</strong> ao lado e repita em voz alta.
-                  <br />
-                  2. Consulte o <strong>Glossário Completo</strong> e as <strong>Regras Práticas</strong> abaixo para entender os padrões.
-                  <br />
-                  3. Na <strong>Etapa 2</strong>, faça o desafio rápido de <strong>Fixação (XP)</strong>; na <strong>Etapa 3</strong>, converse falando com a Teacher IA no cenário <strong>{SCENARIOS[scenarioIdx]}</strong>; e na <strong>Etapa 4</strong>, conclua o Exercício Final.
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-[var(--jvx-text-secondary)]">
+                  {chunks.length} frases-chave
+                </span>
+              </div>
+              <div className="space-y-2.5">
+                {chunks.map((c) => (
+                  <AudioPhraseCard
+                    key={c.chunk}
+                    phrase={c.chunk}
+                    translation={c.pt}
+                    isPlaying={playingText === c.chunk}
+                    onPlay={handlePlay}
+                  />
+                ))}
+              </div>
+            </ContentCard>
+
+            <ContentCard variant="default" padding="md" className="space-y-3">
+              <h2 className="jvx-heading text-sm sm:text-base font-bold text-[#0B1F3B] dark:text-[var(--jvx-text-primary)] flex items-center gap-2">
+                <Blocks className="h-4 w-4 text-[var(--jvx-gold)]" aria-hidden="true" />
+                Vocabulário da Lição (Peças de Montar)
+              </h2>
+              <VocabularyPanel
+                items={activeWordBank}
+                playingText={playingText}
+                onInsertWord={handleInsertWord}
+                onPlay={handlePlay}
+                onOpenGlossary={() => setRefModal('glossary')}
+              />
+            </ContentCard>
+          </div>
+
+          {/* Coluna Complementar: Objetivos, Regras Gramaticais & Avanço */}
+          <div className="lg:col-span-5 space-y-5">
+            <ContentCard variant="highlight" padding="md" className="space-y-4">
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--jvx-info)]">
+                  Etapa 1 de 4 • Preparação Guiada
                 </p>
+                <h2 className="jvx-heading text-base sm:text-lg font-bold text-[#0B1F3B] dark:text-[var(--jvx-text-primary)]">
+                  Como estudar esta lição
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-[var(--jvx-text-secondary)] leading-relaxed">
+                  1. Ouça cada <strong>Chunk Estrutural</strong> e repita em voz alta.
+                  <br />
+                  2. Explore o <strong>Vocabulário</strong> e o <strong>Glossário Completo</strong>.
+                  <br />
+                  3. Avance para a <strong>Fixação (XP)</strong> antes de conversar com a Teacher IA.
+                </p>
+              </div>
 
-                {/* Pílulas de Regras Gramaticais Práticas */}
-                <div className="space-y-2.5 pt-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center gap-1.5">
-                      <Lightbulb className="h-3.5 w-3.5" />
-                      Regras Práticas desta Lição
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => setRefModal('glossary')}
-                      className="text-xs font-semibold text-blue-500 hover:underline"
-                    >
-                      Abrir Glossário Completo →
-                    </button>
-                  </div>
+              <div className="space-y-2.5 pt-2 border-t border-slate-200 dark:border-[var(--jvx-border-subtle)]">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--jvx-gold)] flex items-center gap-1.5">
+                    <Lightbulb className="h-3.5 w-3.5" aria-hidden="true" />
+                    Regras Gramaticais ({pedagogy.grammarRules.length})
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setRefModal('grammar')}
+                    className="text-xs font-semibold text-[var(--jvx-info)] hover:underline cursor-pointer"
+                  >
+                    Expandir regras
+                  </button>
+                </div>
 
+                <div className="space-y-3">
                   {pedagogy.grammarRules.map((rule) => (
-                    <div
+                    <GrammarCard
                       key={rule.title}
-                      className="rounded-xl border border-slate-200 dark:border-[#1F4E79]/50 bg-slate-50 dark:bg-[#06152B] p-3.5 space-y-2"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-bold text-slate-900 dark:text-white">{rule.title}</p>
-                        <button
-                          type="button"
-                          onClick={() => handlePlay(rule.audioExample)}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-[#D4AF37] hover:bg-[#D4AF37]/10 shrink-0"
-                        >
-                          <Volume2
-                            className={`h-3.5 w-3.5 ${playingText === rule.audioExample ? 'animate-pulse' : ''}`}
-                          />
-                          Ouvir
-                        </button>
-                      </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-300">{rule.explanation}</p>
-                      <div className="flex flex-wrap gap-2 text-[11px]">
-                        <span className="rounded-md bg-rose-500/10 px-2 py-1 text-rose-400">
-                          ❌ {rule.dontSay}
-                        </span>
-                        <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-emerald-400">
-                          ✅ {rule.sayInstead}
-                        </span>
-                      </div>
-                    </div>
+                      rule={rule}
+                      isPlaying={playingText === rule.audioExample}
+                      onPlay={handlePlay}
+                    />
                   ))}
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="w-full jvx-btn-primary flex items-center justify-center gap-2 py-3 text-sm"
-              >
-                <Trophy className="h-4 w-4" />
-                Iniciar Fixação Gamificada (XP)
-                <ArrowRight className="h-4 w-4" />
-              </button>
+              <div className="space-y-2.5 pt-2">
+                <PrimaryButton fullWidth size="lg" onClick={() => setStep(2)}>
+                  <Trophy className="h-4 w-4" aria-hidden="true" />
+                  <span>Avançar para Fixação (XP)</span>
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </PrimaryButton>
+                <SecondaryButton
+                  fullWidth
+                  size="sm"
+                  onClick={() => setRefModal('glossary')}
+                >
+                  <BookMarked className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Consultar Glossário Completo</span>
+                </SecondaryButton>
+              </div>
+            </ContentCard>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Coluna Esquerda de Apoio nas Etapas 2, 3 e 4 */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="rounded-2xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-white dark:bg-[var(--jvx-surface-card)] p-5">
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[var(--jvx-text-secondary)] mb-2.5 flex items-center gap-1.5">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Chunks Estruturais (Ouça e repita)
+                </h2>
+                <div className="space-y-2">
+                  {chunks.map((c) => (
+                    <AudioPhraseCard
+                      key={c.chunk}
+                      phrase={c.chunk}
+                      translation={c.pt}
+                      isPlaying={playingText === c.chunk}
+                      onPlay={handlePlay}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Banco de Vocabulário / Peças de Montar */}
+              <div className="mt-5 pt-4 border-t border-slate-200 dark:border-[var(--jvx-border-subtle)]">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[var(--jvx-text-secondary)] mb-2 flex items-center gap-1.5">
+                  <Blocks className="h-3.5 w-3.5 text-[var(--jvx-gold)]" />
+                  Banco de Vocabulário (Peças de Montar)
+                </h2>
+                <VocabularyPanel
+                  items={activeWordBank}
+                  playingText={playingText}
+                  onInsertWord={handleInsertWord}
+                  onPlay={handlePlay}
+                  onOpenGlossary={() => setRefModal('glossary')}
+                />
+
+                {/* Botão de Consulta Rápida às Regras */}
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setRefModal('grammar')}
+                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-slate-50 dark:bg-[var(--jvx-bg)] px-3 py-2.5 min-h-[40px] text-xs font-semibold text-slate-700 dark:text-[var(--jvx-gold)] hover:border-[var(--jvx-gold)] transition cursor-pointer"
+                  >
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    Regras Gramaticais ({pedagogy.grammarRules.length})
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+
+          {/* Coluna Direita: Etapas 2, 3 e 4 (preservadas com altura segura para mobile) */}
+          <div className="lg:col-span-7 flex flex-col rounded-2xl border border-slate-200 dark:border-[var(--jvx-border-subtle)] bg-white dark:bg-[var(--jvx-surface-card)] overflow-hidden min-h-[460px] lg:h-[640px]">
 
           {step === 2 && (
             <FixationGameStage
@@ -913,6 +906,7 @@ export function LessonPage() {
           )}
         </div>
       </div>
+      )}
 
       <LessonReferenceModal
         mode={refModal}
@@ -923,6 +917,6 @@ export function LessonPage() {
         onPlay={handlePlay}
         onClose={() => setRefModal(null)}
       />
-    </div>
+    </PageContainer>
   );
 }
