@@ -3,17 +3,40 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Activity,
   AlertTriangle,
+  BookOpen,
+  Calendar as CalendarIcon,
   CheckCircle2,
   Clock,
   CreditCard,
+  Flame,
+  MessageSquare,
   Search,
   Settings2,
   Shield,
+  Target,
+  TrendingDown,
   Users,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useI18n } from '@/lib/i18n';
+import {
+  ActivityCalendarModal,
+  type DailyCalendarEntry,
+} from '@/components/admin/ActivityCalendarModal';
+import { AdminSupportCenter } from '@/components/admin/AdminSupportCenter';
+
+interface StudentDifficulty {
+  competency_id: string;
+  title: string;
+  skill_domain: string;
+  cefr_level: string;
+  lesson_title: string | null;
+  avg_score: number;
+  mastery_score: number;
+  attempts: number;
+  errors: number;
+}
 
 interface AdminStudent {
   id: string;
@@ -23,6 +46,7 @@ interface AdminStudent {
   native_language: string;
   onboarding_completed: boolean;
   created_at: string;
+  course_id: string | null;
   target_language: string;
   course_title: string;
   target_cefr_level: string;
@@ -37,6 +61,20 @@ interface AdminStudent {
   overdue_reviews: number;
   last_activity_at: string | null;
   engagement_status: 'em_dia' | 'atencao' | 'inativo';
+  current_lesson: {
+    id: string;
+    title: string;
+    unit_title: string;
+    cefr_level: string;
+  } | null;
+  difficulty_level: 'baixa' | 'moderada' | 'alta';
+  difficulties: StudentDifficulty[];
+  daily_calendar: DailyCalendarEntry[];
+  streak_days: number;
+  frequency_pct: number;
+  dedication_label: 'Alta dedicação' | 'Regular' | 'Irregular' | 'Iniciando';
+  open_support_tickets: number;
+  unread_support_messages: number;
 }
 
 interface AdminOverviewResponse {
@@ -45,17 +83,33 @@ interface AdminOverviewResponse {
     active_last_7d: number;
     attention_needed: number;
     avg_score: number;
+    unread_support_total?: number;
   };
   students: AdminStudent[];
+}
+
+function buildLastNDaysStrip(n: number, entries: DailyCalendarEntry[]) {
+  const map = new Map(entries.map((e) => [e.date, e]));
+  const result: Array<{ date: string; entry: DailyCalendarEntry | null }> = [];
+  const cursor = new Date();
+  cursor.setDate(cursor.getDate() - (n - 1));
+  for (let i = 0; i < n; i++) {
+    const iso = cursor.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+    result.push({ date: iso, entry: map.get(iso) ?? null });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return result;
 }
 
 export function AdminPage() {
   const { profile } = useAuth();
   const { t } = useI18n();
-  const [tab, setTab] = useState<'students' | 'billing' | 'school'>('students');
+  const [tab, setTab] = useState<'students' | 'support' | 'billing' | 'school'>('students');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'em_dia' | 'atencao' | 'inativo'>('all');
-  const [selectedStudent, setSelectedStudent] = useState<AdminStudent | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [calendarStudentId, setCalendarStudentId] = useState<string | null>(null);
+  const [supportStudentFilter, setSupportStudentFilter] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-overview'],
@@ -76,7 +130,11 @@ export function AdminPage() {
     );
   }
 
-  const students = (data?.students ?? []).filter((s) => {
+  const allStudents = data?.students ?? [];
+  const selectedStudent = allStudents.find((s) => s.id === selectedStudentId) ?? null;
+  const calendarStudent = allStudents.find((s) => s.id === calendarStudentId) ?? null;
+
+  const students = allStudents.filter((s) => {
     const matchesSearch =
       !search.trim() ||
       s.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -107,6 +165,30 @@ export function AdminPage() {
     );
   };
 
+  const difficultyBadge = (level: AdminStudent['difficulty_level']) => {
+    if (level === 'alta') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold text-rose-400">
+          Alta dificuldade
+        </span>
+      );
+    }
+    if (level === 'moderada') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+          Moderada
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+        Fluindo bem
+      </span>
+    );
+  };
+
+  const unreadSupportTotal = data?.summary.unread_support_total ?? 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -129,16 +211,25 @@ export function AdminPage() {
       {/* Tabs SaaS */}
       <div className="flex flex-wrap gap-2">
         {[
-          { id: 'students' as const, label: t('admin_tab_students'), icon: Users },
-          { id: 'billing' as const, label: t('admin_tab_billing'), icon: CreditCard },
-          { id: 'school' as const, label: t('admin_tab_school'), icon: Settings2 },
+          { id: 'students' as const, label: t('admin_tab_students'), icon: Users, badge: 0 },
+          {
+            id: 'support' as const,
+            label: 'Atendimento & Chat',
+            icon: MessageSquare,
+            badge: unreadSupportTotal,
+          },
+          { id: 'billing' as const, label: t('admin_tab_billing'), icon: CreditCard, badge: 0 },
+          { id: 'school' as const, label: t('admin_tab_school'), icon: Settings2, badge: 0 },
         ].map((item) => {
           const Icon = item.icon;
           return (
             <button
               key={item.id}
               type="button"
-              onClick={() => setTab(item.id)}
+              onClick={() => {
+                setTab(item.id);
+                if (item.id !== 'support') setSupportStudentFilter(null);
+              }}
               className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
                 tab === item.id
                   ? 'bg-[#D4AF37] text-[#0B1F3B]'
@@ -146,7 +237,12 @@ export function AdminPage() {
               }`}
             >
               <Icon className="h-4 w-4" />
-              {item.label}
+              <span>{item.label}</span>
+              {item.badge > 0 && (
+                <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  {item.badge}
+                </span>
+              )}
             </button>
           );
         })}
@@ -218,10 +314,10 @@ export function AdminPage() {
                 <thead className="border-b border-slate-200 dark:border-[#1F4E79]/40 bg-slate-50 dark:bg-[#06152B] text-slate-500 dark:text-slate-300 uppercase">
                   <tr>
                     <th className="px-4 py-3">Aluno</th>
-                    <th className="px-4 py-3">Nativo → Curso</th>
-                    <th className="px-4 py-3">Dias / Tempo</th>
-                    <th className="px-4 py-3">Desempenho</th>
-                    <th className="px-4 py-3">SRS Atrasadas</th>
+                    <th className="px-4 py-3">Curso & Lição Atual</th>
+                    <th className="px-4 py-3">Frequência / Tempo</th>
+                    <th className="px-4 py-3">Desempenho & Dificuldade</th>
+                    <th className="px-4 py-3">SRS / Chat</th>
                     <th className="px-4 py-3">Status</th>
                   </tr>
                 </thead>
@@ -229,37 +325,74 @@ export function AdminPage() {
                   {students.map((st) => (
                     <tr
                       key={st.id}
-                      onClick={() => setSelectedStudent(st)}
-                      className="hover:bg-slate-50 dark:hover:bg-[#1F4E79]/20 cursor-pointer transition"
+                      onClick={() => setSelectedStudentId(st.id)}
+                      className={`hover:bg-slate-50 dark:hover:bg-[#1F4E79]/20 cursor-pointer transition ${
+                        selectedStudentId === st.id ? 'bg-[#D4AF37]/10' : ''
+                      }`}
                     >
                       <td className="px-4 py-3">
                         <p className="font-bold text-slate-900 dark:text-white">{st.full_name}</p>
                         <p className="text-[11px] text-slate-400">{st.email || st.id.slice(0, 8)}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-semibold text-[#D4AF37]">{st.native_language}</span>
-                        <span className="mx-1 text-slate-400">→</span>
-                        <span>{st.target_language === 'es-ES' ? 'Espanhol' : 'Inglês'}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-semibold">{st.active_days} dias ativos</p>
-                        <p className="text-[11px] text-slate-400">
-                          ~{st.estimated_minutes} min (meta {st.daily_minutes_goal}m/dia)
+                        <p>
+                          <span className="font-semibold text-[#D4AF37]">{st.native_language}</span>
+                          <span className="mx-1 text-slate-400">→</span>
+                          <span>{st.target_language === 'es-ES' ? 'Espanhol' : 'Inglês'}</span>
+                        </p>
+                        <p className="text-[11px] text-slate-400 truncate max-w-[200px]">
+                          {st.current_lesson
+                            ? `${st.current_lesson.cefr_level} • ${st.current_lesson.title}`
+                            : 'Nenhuma lição iniciada'}
                         </p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="font-semibold">{st.avg_score}% média</p>
-                        <p className="text-[11px] text-slate-400">{st.mastered_count} dominadas</p>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="font-semibold">
+                              {st.active_days} dia(s) • {st.frequency_pct}% freq.
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              ~{st.estimated_minutes} min ({st.dedication_label})
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCalendarStudentId(st.id);
+                            }}
+                            className="rounded-lg border border-[#1F4E79]/50 p-1.5 text-[#D4AF37] hover:bg-[#D4AF37]/15 transition"
+                            title="Abrir calendário de frequência"
+                          >
+                            <CalendarIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 space-y-1">
+                        <p className="font-semibold">
+                          {st.avg_score}% média • {st.mastered_count} dominadas
+                        </p>
+                        {difficultyBadge(st.difficulty_level)}
+                      </td>
+                      <td className="px-4 py-3 space-y-1">
                         <span
-                          className={`font-bold ${
+                          className={`font-bold block ${
                             st.overdue_reviews > 0 ? 'text-rose-400' : 'text-emerald-400'
                           }`}
                         >
-                          {st.overdue_reviews} atrasadas
+                          {st.overdue_reviews} SRS atrasadas
                         </span>
-                        <p className="text-[11px] text-slate-400">{st.pending_reviews} pendentes</p>
+                        {st.unread_support_messages > 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-400">
+                            <MessageSquare className="h-3 w-3" />
+                            {st.unread_support_messages} dúvida(s)
+                          </span>
+                        ) : (
+                          <p className="text-[11px] text-slate-400">
+                            {st.open_support_tickets} chamado(s)
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3">{statusBadge(st.engagement_status)}</td>
                     </tr>
@@ -276,49 +409,219 @@ export function AdminPage() {
             </div>
           </div>
 
+          {/* Detalhe Rico de Acompanhamento */}
           {selectedStudent && (
-            <div className="rounded-2xl border border-[#D4AF37]/40 bg-[#0B1F3B] text-white p-5 space-y-3">
-              <div className="flex items-start justify-between gap-3">
+            <div className="rounded-3xl border border-[#D4AF37]/40 bg-[#0B1F3B] text-white p-6 space-y-5 shadow-xl">
+              <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <span className="text-[11px] uppercase tracking-wider text-[#D4AF37] font-bold">
-                    Detalhe de Acompanhamento
+                    Detalhe de Acompanhamento Pedagógico
                   </span>
-                  <h3 className="text-lg font-bold">{selectedStudent.full_name}</h3>
+                  <h3 className="text-xl font-bold mt-0.5">{selectedStudent.full_name}</h3>
                   <p className="text-xs text-slate-300">
                     {selectedStudent.email} • Foco: {selectedStudent.focus_area} • Meta CEFR:{' '}
-                    {selectedStudent.target_cefr_level}
+                    {selectedStudent.target_cefr_level} • Meta diária:{' '}
+                    {selectedStudent.daily_minutes_goal} min/dia
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStudent(null)}
-                  className="text-xs text-slate-400 hover:text-white"
-                >
-                  Fechar
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCalendarStudentId(selectedStudent.id)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#D4AF37]/50 bg-[#D4AF37]/15 px-3 py-2 text-xs font-bold text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0B1F3B] transition"
+                  >
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    Abrir Calendário Completo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSupportStudentFilter(selectedStudent.id);
+                      setTab('support');
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#D4AF37] px-3 py-2 text-xs font-bold text-[#0B1F3B] hover:brightness-105 transition"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Chat / Dúvidas
+                    {selectedStudent.unread_support_messages > 0 && (
+                      <span className="rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] text-white">
+                        {selectedStudent.unread_support_messages}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentId(null)}
+                    className="px-2 py-1 text-xs text-slate-400 hover:text-white"
+                  >
+                    Fechar
+                  </button>
+                </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="rounded-xl bg-[#06152B] p-3">
-                  <p className="text-slate-400">Tentativas Totais</p>
-                  <p className="text-base font-bold mt-0.5">{selectedStudent.total_attempts}</p>
+
+              {/* KPIs do Aluno */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                <div className="rounded-2xl bg-[#06152B] p-3.5 border border-[#1F4E79]/40">
+                  <p className="text-slate-400 flex items-center gap-1">
+                    <BookOpen className="h-3.5 w-3.5 text-[#D4AF37]" /> Lição Atual
+                  </p>
+                  <p className="text-sm font-bold mt-1 truncate">
+                    {selectedStudent.current_lesson?.title ?? 'Não iniciada'}
+                  </p>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    {selectedStudent.current_lesson
+                      ? `${selectedStudent.current_lesson.cefr_level} • ${selectedStudent.current_lesson.unit_title}`
+                      : selectedStudent.course_title}
+                  </p>
                 </div>
-                <div className="rounded-xl bg-[#06152B] p-3">
-                  <p className="text-slate-400">Tempo Estimado</p>
-                  <p className="text-base font-bold mt-0.5">{selectedStudent.estimated_minutes} min</p>
+
+                <div className="rounded-2xl bg-[#06152B] p-3.5 border border-[#1F4E79]/40">
+                  <p className="text-slate-400 flex items-center gap-1">
+                    <Target className="h-3.5 w-3.5 text-emerald-400" /> Dedicação (30d)
+                  </p>
+                  <p className="text-sm font-bold mt-1 text-emerald-400">
+                    {selectedStudent.dedication_label}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    {selectedStudent.frequency_pct}% frequência • {selectedStudent.active_days} dia(s)
+                  </p>
                 </div>
-                <div className="rounded-xl bg-[#06152B] p-3">
+
+                <div className="rounded-2xl bg-[#06152B] p-3.5 border border-[#1F4E79]/40">
+                  <p className="text-slate-400 flex items-center gap-1">
+                    <Flame className="h-3.5 w-3.5 text-amber-400" /> Sequência & Tempo
+                  </p>
+                  <p className="text-sm font-bold mt-1">
+                    {selectedStudent.streak_days} dia(s) seguidos
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    {selectedStudent.estimated_minutes} min totais
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[#06152B] p-3.5 border border-[#1F4E79]/40">
+                  <p className="text-slate-400">Tentativas & Nota</p>
+                  <p className="text-sm font-bold mt-1">
+                    {selectedStudent.total_attempts} tent. ({selectedStudent.avg_score}%)
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    {selectedStudent.mastered_count} competência(s) dominadas
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[#06152B] p-3.5 border border-[#1F4E79]/40">
                   <p className="text-slate-400">Última Atividade</p>
-                  <p className="text-base font-bold mt-0.5">
+                  <p className="text-sm font-bold mt-1">
                     {selectedStudent.last_activity_at
                       ? new Date(selectedStudent.last_activity_at).toLocaleDateString('pt-BR')
                       : 'Sem atividade'}
                   </p>
-                </div>
-                <div className="rounded-xl bg-[#06152B] p-3">
-                  <p className="text-slate-400">Agenda SRS</p>
-                  <p className="text-base font-bold mt-0.5 text-amber-400">
-                    {selectedStudent.overdue_reviews} atrasadas
+                  <p className="text-[11px] text-amber-400">
+                    {selectedStudent.overdue_reviews} SRS atrasadas
                   </p>
+                </div>
+              </div>
+
+              {/* Galeria Alinhada de Frequência (últimos 21 dias) + Dificuldades */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                {/* Galeria Alinhada Clicável */}
+                <div className="lg:col-span-6 rounded-2xl bg-[#06152B] border border-[#1F4E79]/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold text-[#D4AF37]">
+                        Galeria de Frequência (Últimos 21 dias)
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        Clique em qualquer dia para abrir o calendário detalhado
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCalendarStudentId(selectedStudent.id)}
+                      className="text-[11px] font-semibold text-[#D4AF37] hover:underline"
+                    >
+                      Ver mês inteiro →
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-2">
+                    {buildLastNDaysStrip(21, selectedStudent.daily_calendar).map(
+                      ({ date, entry }) => {
+                        const dayNum = date.slice(8, 10);
+                        const hitGoal =
+                          entry && entry.minutes >= selectedStudent.daily_minutes_goal;
+                        return (
+                          <button
+                            key={date}
+                            type="button"
+                            onClick={() => setCalendarStudentId(selectedStudent.id)}
+                            title={
+                              entry
+                                ? `${date}: ${entry.minutes} min (${entry.sessions} acesso(s))`
+                                : `${date}: Sem acesso`
+                            }
+                            className={`h-11 rounded-xl border flex flex-col items-center justify-center transition ${
+                              entry
+                                ? hitGoal
+                                  ? 'bg-emerald-500/25 border-emerald-400/60 text-white hover:scale-105'
+                                  : 'bg-[#D4AF37]/25 border-[#D4AF37]/60 text-white hover:scale-105'
+                                : 'bg-[#0B1F3B] border-[#1F4E79]/30 text-slate-500 hover:border-slate-500'
+                            }`}
+                          >
+                            <span className="text-[11px] font-bold">{dayNum}</span>
+                            <span className="text-[9px] text-slate-300">
+                              {entry ? `${entry.minutes}m` : '—'}
+                            </span>
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+
+                {/* Pontos de Dificuldade */}
+                <div className="lg:col-span-6 rounded-2xl bg-[#06152B] border border-[#1F4E79]/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold text-[#D4AF37] flex items-center gap-1.5">
+                      <TrendingDown className="h-4 w-4 text-rose-400" />
+                      Pontos de Dificuldade do Aluno
+                    </p>
+                    {difficultyBadge(selectedStudent.difficulty_level)}
+                  </div>
+
+                  {selectedStudent.difficulties.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-4">
+                      Nenhuma dificuldade crítica registrada até o momento.
+                    </p>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {selectedStudent.difficulties.map((d) => (
+                        <div key={d.competency_id} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs gap-2">
+                            <span className="font-semibold truncate">
+                              {d.lesson_title ? `${d.lesson_title} — ` : ''}
+                              {d.title}
+                            </span>
+                            <span className="text-[11px] text-rose-400 font-bold shrink-0">
+                              {d.avg_score}% ({d.errors} erro(s))
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-[#0B1F3B] overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                d.avg_score < 60
+                                  ? 'bg-rose-500'
+                                  : d.avg_score < 80
+                                  ? 'bg-amber-400'
+                                  : 'bg-emerald-400'
+                              }`}
+                              style={{ width: `${Math.max(8, d.avg_score)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -326,12 +629,37 @@ export function AdminPage() {
         </>
       )}
 
+      {tab === 'support' && (
+        <AdminSupportCenter
+          students={allStudents.map((s) => ({
+            id: s.id,
+            full_name: s.full_name,
+            email: s.email,
+            course_title: s.course_title,
+          }))}
+          initialStudentFilter={supportStudentFilter}
+          onRefreshOverview={() => refetch()}
+        />
+      )}
+
       {tab === 'billing' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { name: 'Plano Starter', price: 'R$ 79/mês', desc: 'A1-A2 + Agenda SRS + Prática IA limitada' },
-            { name: 'Plano Pro IA', price: 'R$ 149/mês', desc: 'CEFR Completo + Fala Ilimitada + Voz Neural' },
-            { name: 'Corporativo B2B', price: 'Sob consulta', desc: 'Gestão de equipes, KPIs e relatórios por empresa' },
+            {
+              name: 'Plano Starter',
+              price: 'R$ 79/mês',
+              desc: 'A1-A2 + Agenda SRS + Prática IA limitada',
+            },
+            {
+              name: 'Plano Pro IA',
+              price: 'R$ 149/mês',
+              desc: 'CEFR Completo + Fala Ilimitada + Voz Neural',
+            },
+            {
+              name: 'Corporativo B2B',
+              price: 'Sob consulta',
+              desc: 'Gestão de equipes, KPIs e relatórios por empresa',
+            },
           ].map((plan) => (
             <div
               key={plan.name}
@@ -358,11 +686,28 @@ export function AdminPage() {
               <p>Inglês Estruturado CEFR (A1–C2) • Espanhol Peninsular (Instituto Cervantes)</p>
             </div>
             <div className="rounded-xl bg-slate-50 dark:bg-[#06152B] p-4 border border-slate-200 dark:border-[#1F4E79]/40">
-              <p className="font-bold text-[#D4AF37] mb-1">Idiomas Nativos Suportados (Dicas & i18n)</p>
+              <p className="font-bold text-[#D4AF37] mb-1">
+                Idiomas Nativos Suportados (Dicas & i18n)
+              </p>
               <p>Português (Brasil) • Español • English</p>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Calendário Completo */}
+      {calendarStudent && (
+        <ActivityCalendarModal
+          studentName={calendarStudent.full_name}
+          dailyGoalMinutes={calendarStudent.daily_minutes_goal}
+          activeDays={calendarStudent.active_days}
+          totalMinutes={calendarStudent.estimated_minutes}
+          streakDays={calendarStudent.streak_days}
+          frequencyPct={calendarStudent.frequency_pct}
+          dedicationLabel={calendarStudent.dedication_label}
+          entries={calendarStudent.daily_calendar}
+          onClose={() => setCalendarStudentId(null)}
+        />
       )}
     </div>
   );

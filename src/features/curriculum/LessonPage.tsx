@@ -13,7 +13,9 @@ import {
   Lightbulb,
   Trophy,
   Headphones,
+  LifeBuoy,
 } from 'lucide-react';
+import { openStudentSupportChat } from '@/components/support/StudentSupportWidget';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { normalizeUiLocale } from '@/lib/i18n';
@@ -378,6 +380,24 @@ export function LessonPage() {
         progressPct={lessonProgress > 0 ? lessonProgress : null}
         progressLabel="Progresso nesta sessão"
       />
+
+      {/* Contextual Help Bar for this Lesson */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D4AF37]/30 bg-white/80 dark:bg-[#0B1F3B]/80 px-4 py-2.5 text-xs">
+        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+          <LifeBuoy className="h-4 w-4 text-[#D4AF37] shrink-0" />
+          <span>
+            Ficou com dúvida em <strong>{lesson.title}</strong>? Envie sua pergunta ou print da tela para o professor.
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={openStudentSupportChat}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-[#D4AF37]/15 border border-[#D4AF37]/50 px-3 py-1.5 text-xs font-bold text-[#0B1F3B] dark:text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0B1F3B] transition"
+        >
+          <LifeBuoy className="h-3.5 w-3.5" />
+          Tirar Dúvida (Help)
+        </button>
+      </div>
 
       {/* Stepper Pedagógico: 4 Etapas */}
       <LessonStepper

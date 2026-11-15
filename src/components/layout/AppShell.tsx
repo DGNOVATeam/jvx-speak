@@ -1,9 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useMatch } from 'react-router-dom';
 import { LogOut, Moon, Shield, Sun } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { InstallAppPrompt } from '@/components/pwa/InstallAppPrompt';
 import { LocaleSelector, useI18n } from '@/lib/i18n';
+import { supabase } from '@/lib/supabase';
+import { StudentSupportWidget } from '@/components/support/StudentSupportWidget';
 
 const NAV_ITEMS = [
   { to: '/', labelKey: 'nav_home', iconName: 'home' },
@@ -14,13 +16,41 @@ const NAV_ITEMS = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { t } = useI18n();
   const [dark, setDark] = useState(true);
+  const lessonMatch = useMatch('/lessons/:lessonId');
+  const activeLessonId = lessonMatch?.params?.lessonId ?? null;
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
   }, [dark]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const sendHeartbeat = async (seconds: number) => {
+      if (cancelled || document.visibilityState !== 'visible') return;
+      await supabase
+        .schema('core_learning')
+        .rpc('record_study_heartbeat', {
+          p_lesson_id: activeLessonId,
+          p_seconds: seconds,
+        })
+        .then(() => undefined, () => undefined);
+    };
+
+    void sendHeartbeat(15);
+    const interval = window.setInterval(() => {
+      void sendHeartbeat(60);
+    }, 60_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [user, activeLessonId]);
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex bg-[#F4F6FA] dark:bg-[#06152B] text-[#0B1F3B] dark:text-white">
@@ -183,6 +213,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </NavLink>
         )}
       </nav>
+      <StudentSupportWidget />
     </div>
   );
 }
