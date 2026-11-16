@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useMatch } from 'react-router-dom';
-import { LogOut, Moon, Shield, Sun } from 'lucide-react';
+import { ChevronRight, Gem, LogOut, Moon, Shield, Sun, Target } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { InstallAppPrompt } from '@/components/pwa/InstallAppPrompt';
 import { LocaleSelector, useI18n } from '@/lib/i18n';
@@ -96,6 +96,35 @@ export function AppShell({ children }: { children: ReactNode }) {
               )}
             </NavLink>
           ))}
+
+          <NavLink
+            to="/goals"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${
+                isActive
+                  ? 'bg-[#D4AF37] text-[#0B1F3B] shadow-sm'
+                  : 'text-[#0B1F3B]/80 dark:text-slate-200 hover:bg-[#F4F6FA] dark:hover:bg-[#1F4E79]/40'
+              }`
+            }
+          >
+            <Target className="h-4 w-4 shrink-0 text-[#D4AF37]" />
+            <span>Metas</span>
+          </NavLink>
+
+          <NavLink
+            to="/achievements"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${
+                isActive
+                  ? 'bg-[#D4AF37] text-[#0B1F3B] shadow-sm'
+                  : 'text-[#0B1F3B]/80 dark:text-slate-200 hover:bg-[#F4F6FA] dark:hover:bg-[#1F4E79]/40'
+              }`
+            }
+          >
+            <Gem className="h-4 w-4 shrink-0 text-[#D4AF37]" />
+            <span>Conquistas</span>
+          </NavLink>
+
           {profile?.role === 'admin' && (
             <NavLink
               to="/admin"
@@ -111,6 +140,32 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span>{t('nav_admin')}</span>
             </NavLink>
           )}
+
+          {/* Card Tutor IA na Sidebar */}
+          <div className="pt-3 mt-3 border-t border-slate-200 dark:border-[#1F4E79]/40">
+            <div className="rounded-2xl border border-[#1F4E79]/50 bg-[#06152B] p-3.5 text-white space-y-3 shadow-inner">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/media/tutors/ai-robot-tutor.png"
+                  alt="Tutor IA"
+                  className="h-14 w-14 rounded-xl object-cover shrink-0 border border-[#1F4E79]/60"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold leading-tight">Tutor IA</p>
+                  <p className="text-[11px] text-slate-300 leading-snug mt-1">
+                    Pratique conversação em tempo real com IA.
+                  </p>
+                </div>
+              </div>
+              <NavLink
+                to="/tutor"
+                className="w-full inline-flex items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#E5C158] px-3 py-2 text-xs font-bold text-[#0B1F3B] hover:brightness-105 transition shadow"
+              >
+                <span>Conversar agora</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </NavLink>
+            </div>
+          </div>
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-[#1F4E79]/40 space-y-3">

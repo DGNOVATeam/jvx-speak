@@ -11,6 +11,8 @@ import { SkillsPage } from '@/features/skills/SkillsPage';
 import { SchedulePage } from '@/features/schedule/SchedulePage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { AdminPage } from '@/features/admin/AdminPage';
+import { TutorLivePage } from '@/features/tutor/TutorLivePage';
+import { GoalsPage } from '@/components/gamification/GoalsAndAchievementsPanel';
 import { I18nProvider } from '@/lib/i18n';
 
 const queryClient = new QueryClient();
@@ -47,6 +49,9 @@ function ProtectedRoutes() {
         <Route path="/lessons/:lessonId" element={<LessonPage />} />
         <Route path="/skills" element={<SkillsPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
+        <Route path="/goals" element={<GoalsPage />} />
+        <Route path="/achievements" element={<GoalsPage />} />
+        <Route path="/tutor" element={<TutorLivePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

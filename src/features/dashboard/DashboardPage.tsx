@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2, Clock, Sparkles, ArrowRight, BookOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
+import { GoalsAndAchievementsPanel } from '@/components/gamification/GoalsAndAchievementsPanel';
 
 export function DashboardPage() {
   const { user, profile } = useAuth();
@@ -159,6 +160,12 @@ export function DashboardPage() {
           </Link>
         )}
       </div>
+
+      {/* Metas Diárias (20m), Desafios & Gestão de Conquistas */}
+      <GoalsAndAchievementsPanel
+        masteredCount={masteredCount}
+        cefrLevel={enrollment?.estimated_cefr_level ?? 'A1'}
+      />
 
       {/* Aulas Piloto Disponíveis */}
       <div>
