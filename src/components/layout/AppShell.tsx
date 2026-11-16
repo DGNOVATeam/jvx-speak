@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useMatch } from 'react-router-dom';
-import { ChevronRight, Gem, LogOut, Moon, Shield, Sun, Target } from 'lucide-react';
+import { Bot, ChevronRight, Gem, LogOut, Moon, Shield, Sun, Target } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { InstallAppPrompt } from '@/components/pwa/InstallAppPrompt';
 import { LocaleSelector, useI18n } from '@/lib/i18n';
@@ -254,6 +254,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
           </NavLink>
         ))}
+        <NavLink
+          to="/tutor"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-1 text-[11px] font-semibold ${
+              isActive ? 'text-[#D4AF37]' : 'text-[#D4AF37]/85'
+            }`
+          }
+        >
+          <Bot className="h-4 w-4" />
+          <span>Tutor IA</span>
+        </NavLink>
         {profile?.role === 'admin' && (
           <NavLink
             to="/admin"

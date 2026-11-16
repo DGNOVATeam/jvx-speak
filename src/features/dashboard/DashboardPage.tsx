@@ -140,6 +140,29 @@ export function DashboardPage() {
         </div>
       </div>
 
+      {/* Mobile Tutor IA Card */}
+      <div className="md:hidden rounded-2xl border border-[#1F4E79]/50 bg-[#0B1F3B] p-4 text-white flex items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-3 min-w-0">
+          <img
+            src="/media/tutors/ai-robot-tutor.png"
+            alt="Tutor IA"
+            className="h-12 w-12 rounded-xl object-cover shrink-0 border border-[#1F4E79]/60"
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-bold leading-tight">Tutor IA</p>
+            <p className="text-[11px] text-slate-300 leading-snug mt-0.5">
+              Pratique conversação em tempo real com IA.
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/tutor"
+          className="shrink-0 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#E5C158] px-3 py-2 text-xs font-bold text-[#0B1F3B] hover:brightness-105 transition"
+        >
+          Conversar
+        </Link>
+      </div>
+
       {/* Próxima Decisão do PedagogicalEngine */}
       <div className="rounded-2xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 dark:bg-[#0B1F3B] p-6">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#B68D1F] dark:text-[#D4AF37] mb-2">
