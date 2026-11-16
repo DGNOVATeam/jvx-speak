@@ -73,13 +73,19 @@ Deno.serve(async (req) => {
       .single();
 
     if (interaction) {
+      const inTokens = payload?.usageMetadata?.promptTokenCount ?? 0;
+      const outTokens = payload?.usageMetadata?.candidatesTokenCount ?? 0;
+      const estimatedCostUsd = Number(
+        ((inTokens / 1_000_000) * 0.50 + (outTokens / 1_000_000) * 10.0).toFixed(6)
+      );
+
       await auth.adminClient.schema('core_ai').from('model_usage').insert({
         interaction_id: interaction.id,
         provider: 'google_gemini',
         model_name: 'gemini-2.5-flash-preview-tts',
-        input_tokens: payload?.usageMetadata?.promptTokenCount ?? 0,
-        output_tokens: payload?.usageMetadata?.candidatesTokenCount ?? 0,
-        estimated_cost_usd: 0,
+        input_tokens: inTokens,
+        output_tokens: outTokens,
+        estimated_cost_usd: estimatedCostUsd,
         latency_ms: Date.now() - start,
       });
     }

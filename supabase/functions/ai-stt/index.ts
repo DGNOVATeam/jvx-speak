@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
     const targetLang = lang === 'es-ES' ? 'Spanish (Spain)' : 'English';
 
     const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
+    const start = Date.now();
     const response = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent',
       {
@@ -72,6 +73,38 @@ Deno.serve(async (req) => {
     const data = await response.json();
     const transcript =
       data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+
+    if (auth.adminClient) {
+      const inTokens = data?.usageMetadata?.promptTokenCount ?? 0;
+      const outTokens = data?.usageMetadata?.candidatesTokenCount ?? 0;
+      const estimatedCostUsd = Number(
+        ((inTokens / 1_000_000) * 0.30 + (outTokens / 1_000_000) * 0.30).toFixed(6)
+      );
+
+      const { data: interaction } = await auth.adminClient
+        .schema('core_ai')
+        .from('ai_interactions')
+        .insert({
+          student_id: auth.user.id,
+          agent_name: 'SpeechToText',
+          status: 'success',
+          sanitized_summary: `STT (${targetLang})`,
+        })
+        .select('id')
+        .single();
+
+      if (interaction) {
+        await auth.adminClient.schema('core_ai').from('model_usage').insert({
+          interaction_id: interaction.id,
+          provider: 'google_gemini',
+          model_name: 'gemini-flash-lite-latest',
+          input_tokens: inTokens,
+          output_tokens: outTokens,
+          estimated_cost_usd: estimatedCostUsd,
+          latency_ms: Date.now() - start,
+        });
+      }
+    }
 
     return new Response(JSON.stringify({ transcript }), {
       status: 200,

@@ -42,6 +42,8 @@ Deno.serve(async (req) => {
       competenciesRes,
       lessonCompRes,
       supportThreadsRes,
+      aiInteractionsRes,
+      modelUsageRes,
     ] = await Promise.all([
       auth.adminClient.auth.admin.listUsers({ perPage: 500 }),
       auth.adminClient
@@ -87,7 +89,7 @@ Deno.serve(async (req) => {
       auth.adminClient
         .schema('core_curriculum')
         .from('competencies')
-        .select('id, title, cefr_level, skill_domain'),
+        .select('id, title, cefr_level, skill_category'),
       auth.adminClient
         .schema('core_curriculum')
         .from('lesson_competencies')
@@ -96,6 +98,18 @@ Deno.serve(async (req) => {
         .schema('core_learning')
         .from('support_threads')
         .select('id, student_id, status, unread_by_admin'),
+      auth.adminClient
+        .schema('core_ai')
+        .from('ai_interactions')
+        .select('id, student_id, agent_name, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(2000),
+      auth.adminClient
+        .schema('core_ai')
+        .from('model_usage')
+        .select('interaction_id, provider, model_name, input_tokens, output_tokens, estimated_cost_usd, latency_ms, created_at')
+        .order('created_at', { ascending: false })
+        .limit(2000),
     ]);
 
     const emailMap = new Map<string, string>();
@@ -147,7 +161,7 @@ Deno.serve(async (req) => {
 
     const compMap = new Map<
       string,
-      { id: string; title: string; cefr_level: string; skill_domain: string }
+      { id: string; title: string; cefr_level: string; skill_category: string }
     >();
     for (const c of competenciesRes.data ?? []) {
       compMap.set(c.id, c);
@@ -309,7 +323,7 @@ Deno.serve(async (req) => {
           return {
             competency_id: compId,
             title: comp?.title ?? 'Competência',
-            skill_domain: comp?.skill_domain ?? 'general',
+            skill_domain: comp?.skill_category ?? 'general',
             cefr_level: comp?.cefr_level ?? 'A1',
             lesson_title: lInfo?.title ?? null,
             avg_score: avg,
@@ -434,6 +448,151 @@ Deno.serve(async (req) => {
       0
     );
 
+    // AI Consumption & Cost Aggregation
+    const interactionMap = new Map<
+      string,
+      { id: string; student_id: string; agent_name: string; status: string; created_at: string }
+    >();
+    for (const inter of aiInteractionsRes.data ?? []) {
+      interactionMap.set(inter.id, inter);
+    }
+
+    const studentNameMap = new Map(students.map((s) => [s.id, s.full_name]));
+    const cutoff30dIso = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    let totalCalls = 0;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCostUsd = 0;
+    let costLast30dUsd = 0;
+    let costTodayUsd = 0;
+
+    const byModelMap = new Map<
+      string,
+      {
+        model_name: string;
+        provider: string;
+        calls: number;
+        input_tokens: number;
+        output_tokens: number;
+        cost_usd: number;
+        latency_sum: number;
+      }
+    >();
+
+    const byAgentMap = new Map<string, { agent_name: string; calls: number; cost_usd: number }>();
+    const byStudentMap = new Map<
+      string,
+      { student_id: string; full_name: string; calls: number; total_tokens: number; cost_usd: number }
+    >();
+
+    const recentLogs: Array<{
+      created_at: string;
+      student_name: string;
+      agent_name: string;
+      model_name: string;
+      input_tokens: number;
+      output_tokens: number;
+      cost_usd: number;
+      latency_ms: number;
+    }> = [];
+
+    for (const u of modelUsageRes.data ?? []) {
+      const inter = interactionMap.get(u.interaction_id);
+      const inTok = Number(u.input_tokens ?? 0);
+      const outTok = Number(u.output_tokens ?? 0);
+      const cost = Number(u.estimated_cost_usd ?? 0);
+      const lat = Number(u.latency_ms ?? 0);
+      const createdDate = new Date(u.created_at).toLocaleDateString('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+      });
+
+      totalCalls += 1;
+      totalInputTokens += inTok;
+      totalOutputTokens += outTok;
+      totalCostUsd += cost;
+      if (u.created_at >= cutoff30dIso) costLast30dUsd += cost;
+      if (createdDate === todayIso) costTodayUsd += cost;
+
+      const mPrev = byModelMap.get(u.model_name) ?? {
+        model_name: u.model_name,
+        provider: u.provider,
+        calls: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        cost_usd: 0,
+        latency_sum: 0,
+      };
+      mPrev.calls += 1;
+      mPrev.input_tokens += inTok;
+      mPrev.output_tokens += outTok;
+      mPrev.cost_usd += cost;
+      mPrev.latency_sum += lat;
+      byModelMap.set(u.model_name, mPrev);
+
+      const agentName = inter?.agent_name ?? 'Desconhecido';
+      const aPrev = byAgentMap.get(agentName) ?? { agent_name: agentName, calls: 0, cost_usd: 0 };
+      aPrev.calls += 1;
+      aPrev.cost_usd += cost;
+      byAgentMap.set(agentName, aPrev);
+
+      if (inter?.student_id) {
+        const sPrev = byStudentMap.get(inter.student_id) ?? {
+          student_id: inter.student_id,
+          full_name: studentNameMap.get(inter.student_id) ?? 'Aluno',
+          calls: 0,
+          total_tokens: 0,
+          cost_usd: 0,
+        };
+        sPrev.calls += 1;
+        sPrev.total_tokens += inTok + outTok;
+        sPrev.cost_usd += cost;
+        byStudentMap.set(inter.student_id, sPrev);
+      }
+
+      if (recentLogs.length < 15) {
+        recentLogs.push({
+          created_at: u.created_at,
+          student_name: inter?.student_id
+            ? studentNameMap.get(inter.student_id) ?? 'Aluno'
+            : 'Sistema',
+          agent_name: agentName,
+          model_name: u.model_name,
+          input_tokens: inTok,
+          output_tokens: outTok,
+          cost_usd: cost,
+          latency_ms: lat,
+        });
+      }
+    }
+
+    const aiUsage = {
+      total_calls: totalCalls,
+      total_input_tokens: totalInputTokens,
+      total_output_tokens: totalOutputTokens,
+      total_cost_usd: Number(totalCostUsd.toFixed(6)),
+      cost_last_30d_usd: Number(costLast30dUsd.toFixed(6)),
+      cost_today_usd: Number(costTodayUsd.toFixed(6)),
+      by_model: Array.from(byModelMap.values())
+        .map((m) => ({
+          model_name: m.model_name,
+          provider: m.provider,
+          calls: m.calls,
+          input_tokens: m.input_tokens,
+          output_tokens: m.output_tokens,
+          cost_usd: Number(m.cost_usd.toFixed(6)),
+          avg_latency_ms: m.calls > 0 ? Math.round(m.latency_sum / m.calls) : 0,
+        }))
+        .sort((a, b) => b.cost_usd - a.cost_usd),
+      by_agent: Array.from(byAgentMap.values())
+        .map((a) => ({ ...a, cost_usd: Number(a.cost_usd.toFixed(6)) }))
+        .sort((a, b) => b.cost_usd - a.cost_usd),
+      by_student: Array.from(byStudentMap.values())
+        .map((s) => ({ ...s, cost_usd: Number(s.cost_usd.toFixed(6)) }))
+        .sort((a, b) => b.cost_usd - a.cost_usd),
+      recent_logs: recentLogs,
+    };
+
     return new Response(
       JSON.stringify({
         summary: {
@@ -444,6 +603,7 @@ Deno.serve(async (req) => {
           unread_support_total: unreadSupportTotal,
         },
         students,
+        ai_usage: aiUsage,
       }),
       {
         status: 200,

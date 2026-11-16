@@ -7,6 +7,7 @@ import {
   Calendar as CalendarIcon,
   CheckCircle2,
   Clock,
+  Cpu,
   CreditCard,
   Flame,
   MessageSquare,
@@ -25,6 +26,10 @@ import {
   type DailyCalendarEntry,
 } from '@/components/admin/ActivityCalendarModal';
 import { AdminSupportCenter } from '@/components/admin/AdminSupportCenter';
+import {
+  AdminAICostsPanel,
+  type AIUsageSummary,
+} from '@/components/admin/AdminAICostsPanel';
 
 interface StudentDifficulty {
   competency_id: string;
@@ -86,6 +91,7 @@ interface AdminOverviewResponse {
     unread_support_total?: number;
   };
   students: AdminStudent[];
+  ai_usage?: AIUsageSummary;
 }
 
 function buildLastNDaysStrip(n: number, entries: DailyCalendarEntry[]) {
@@ -104,7 +110,7 @@ function buildLastNDaysStrip(n: number, entries: DailyCalendarEntry[]) {
 export function AdminPage() {
   const { profile } = useAuth();
   const { t } = useI18n();
-  const [tab, setTab] = useState<'students' | 'support' | 'billing' | 'school'>('students');
+  const [tab, setTab] = useState<'students' | 'support' | 'ai_costs' | 'billing' | 'school'>('students');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'em_dia' | 'atencao' | 'inativo'>('all');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -218,6 +224,7 @@ export function AdminPage() {
             icon: MessageSquare,
             badge: unreadSupportTotal,
           },
+          { id: 'ai_costs' as const, label: 'Consumo & Custos IA', icon: Cpu, badge: 0 },
           { id: 'billing' as const, label: t('admin_tab_billing'), icon: CreditCard, badge: 0 },
           { id: 'school' as const, label: t('admin_tab_school'), icon: Settings2, badge: 0 },
         ].map((item) => {
@@ -639,6 +646,13 @@ export function AdminPage() {
           }))}
           initialStudentFilter={supportStudentFilter}
           onRefreshOverview={() => refetch()}
+        />
+      )}
+
+      {tab === 'ai_costs' && (
+        <AdminAICostsPanel
+          aiUsage={data?.ai_usage}
+          activeStudentsCount={data?.summary.total_students ?? 0}
         />
       )}
 
